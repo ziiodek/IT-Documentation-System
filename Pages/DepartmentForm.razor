@@ -1,0 +1,137 @@
+@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+@inject ProtectedSessionStorage ProtectedSessionStore
+
+
+
+
+
+<RadzenTemplateForm Data="@subdepartment" Submit="@((Subdepartment args) => { Submit(args); })">
+    <div class="row">
+        <div class="col-sm-2 ">
+            <RadzenLabel Text="Department Name" />
+        </div>
+        <div class="col-sm-8">
+            <RadzenTextBox @bind-Value=@subdepartment!.Name Name="Name" style="width:100%;" />
+            <br>
+            <RadzenRequiredValidator Component="Name" Text="Department Name" Popup="true" Style="position: absolute" />
+        </div>
+    </div>
+    <br>
+    <br>
+    <div class="row justify-content-center">
+        <div class="col-md-12 d-flex align-items-end justify-content-left" style="margin-top: 16px;">
+            <RadzenButton ButtonType="ButtonType.Submit" Icon="save" Text="Save" />
+            <RadzenButton Icon="cancel" style="display: inline-block; margin-left: 10px;" Text="Cancel" Click="@Cancel" />
+        </div>
+    </div>
+</RadzenTemplateForm>
+
+
+@code {
+    [Parameter]
+    public Subdepartment subdepartment { get; set; }
+    [Parameter]
+    public string state { get; set; }
+    [Parameter]
+    public EventCallback<string> SetState__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback ReloadSubdepartments__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<bool> ShowAlert__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertMessage__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertType__ParentEvent { get; set; }
+
+
+    [Parameter]
+    public int departmentID { get; set; }
+    string userName;
+    bool showAlert = false;
+    string alertMessage = "Record Updated";
+    string alertType = "alert alert-primary";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await ProtectedSessionStore.GetAsync<string>("user");
+        if (result.Success)
+        {
+            userName = result.Value!.ToString();
+        }
+    }
+
+    void Submit(Subdepartment subdepartment)
+    {
+        this.subdepartment = subdepartment;
+        if (state == "create")
+        {
+            Create(subdepartment);
+            ShowAlert__ParentEvent.InvokeAsync(true);
+            SetAlertMessage__ParentEvent.InvokeAsync("Record Succesfully created");
+            SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+
+        }
+        else
+        {
+            Update(subdepartment);
+            ShowAlert__ParentEvent.InvokeAsync(true);
+            SetAlertMessage__ParentEvent.InvokeAsync("Record Succesfully updated");
+            SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+        }
+        SetState__ParentEvent.InvokeAsync("records");
+        ReloadSubdepartments__ParentEvent.InvokeAsync();
+
+    }
+
+
+    void Create(Subdepartment subdepartment)
+    {
+
+        if (!dbContext.Subdepartment.Any(s => s.Name == subdepartment.Name!.ToUpper()))
+        {
+            this.subdepartment = subdepartment;
+            this.subdepartment.DepartmentID = departmentID;
+            this.subdepartment.Name = subdepartment.Name;
+            this.subdepartment.DateTime = DateTime.Now;
+            this.subdepartment.AuthorName = userName;
+            dbContext.Subdepartment.Add(subdepartment);
+            dbContext.SaveChanges();
+
+            Subdepartment tmpSubdepartment = dbContext.Subdepartment.First(s => s.Name == subdepartment.Name);
+            SinglePage aboutDepartment = new SinglePage();
+            aboutDepartment.SubdepartmentID = tmpSubdepartment.ID;
+            aboutDepartment.Name = "About";
+            aboutDepartment.AuthorName = "System";
+            aboutDepartment.DateTime = DateTime.Now;
+            aboutDepartment.PageContent = "Write here about your department";
+            dbContext.SinglePage.Add(aboutDepartment);
+            dbContext.SaveChanges();
+
+        }
+
+    }
+
+
+
+    void Update(Subdepartment subdepartment)
+    {
+
+        subdepartment.ModifiedBy = userName;
+        subdepartment.ModifiedDate = DateTime.Now;
+        Subdepartment prevSubdepartment = dbContext.Subdepartment.First(p => p.ID == subdepartment.ID);
+        dbContext.Entry(prevSubdepartment).CurrentValues.SetValues(subdepartment);
+        dbContext.SaveChanges();
+
+
+    }
+
+    void Cancel()
+    {
+        subdepartment = new Subdepartment();
+        SetState__ParentEvent.InvokeAsync("records");
+
+    }
+}

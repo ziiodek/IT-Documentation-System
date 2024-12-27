@@ -1,0 +1,85 @@
+﻿@using ITDocumentation.Data
+@using System.Text.Json
+@using System.Text.Json.Nodes
+@inject ApplicationDbContext dbContext
+
+<div>
+    <br>
+    <h5>Tags:</h5>
+    <RadzenRow Wrap="FlexWrap.NoWrap">
+        @{
+
+
+            foreach (var tag in tagList)
+            {
+               
+                <span style="border-radius:5px; background-color:#dcd7e0; padding:0.1%; width:fit-content;">
+                    @{
+                        if (status != "view")
+                        {
+                            <RadzenButton ButtonStyle="ButtonStyle.Light"
+                                          Icon="highlight_off" Variant="Variant.Flat"
+                                          Shade="Shade.Lighter"
+                                          Size="ButtonSize.Small" Class="my-1 ms-1"
+                                          Click="@(args => DeleteTag(tag))" @onclick:stopPropagation="true">
+                            </RadzenButton>
+
+                        }
+
+                    }
+
+                    @tag
+                </span>
+            }
+
+
+        }
+    </RadzenRow>
+
+</div>
+
+
+@code {
+    [Parameter]
+    public List<string> tagList { get; set; }
+    [Parameter]
+    public EventCallback InitTagList__ParentEvent { get; set; }
+    [Parameter]
+    public int pageID { get; set; }
+    [Parameter]
+    public string pageType { get; set; }
+    [Parameter]
+    public string status { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> ShowAlert__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertMessage__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertType__ParentEvent { get; set; }
+
+
+    async Task DeleteTag(string tag)
+    {
+
+
+        tagList = new List<string>();
+        SinglePagesHelper singlePageHelper = new SinglePagesHelper(dbContext);
+        /**if (pageType == "Document")
+        {
+            
+        }
+        else
+        {
+        }*/
+        
+        singlePageHelper.DeleteTags(tag, pageID, pageType!, "ContentTags.json");
+        //singlePageHelper.DeleteTags(tag, pageID, "Document", "DocumentTags.json");
+        await InitTagList__ParentEvent.InvokeAsync();
+
+
+    }
+
+
+
+}

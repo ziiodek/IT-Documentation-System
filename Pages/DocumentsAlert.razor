@@ -1,0 +1,33 @@
+﻿<div class="@alertType alert-box-documents" style="text-align:center;" role="alert">
+    @{
+        if (alertType == "alert alert-danger")
+        {
+            <RadzenButton Icon="highlight_off" ButtonStyle="ButtonStyle.Danger" Style="{position:relative; float:right;}" Variant="Variant.Flat" Size="ButtonSize.Small" Click="@(args => HideAlert())" @onclick:stopPropagation="true">
+            </RadzenButton>
+        }
+        else
+        {
+            <RadzenButton Icon="highlight_off" ButtonStyle="ButtonStyle.Primary" Style="{position:relative; float:right;}" Variant="Variant.Flat" Size="ButtonSize.Small" Click="@(args => HideAlert())" @onclick:stopPropagation="true">
+            </RadzenButton>
+        }
+    }
+    @content
+</div>
+
+@code {
+    [Parameter]
+    public string content { get; set; }
+    [Parameter]
+    public string alertType { get; set; }
+    [Parameter]
+    public EventCallback HideAlert__ParentEvent { get; set; }
+
+    void HideAlert()
+    {
+        HideAlert__ParentEvent.InvokeAsync();
+
+    }
+
+
+
+}

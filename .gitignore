@@ -1,0 +1,11 @@
+.vs/
+bin/
+obj/
+ITDocumentations.Test/obj/
+*.user
+artifacts/
+.vscode/
+.dotnet/
+*.binlog
+appsettings.json
+appsettings.Development.json

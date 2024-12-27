@@ -1,0 +1,129 @@
+﻿@page "/applications/"
+@using ITDocumentation.Data
+@using System.Collections.Generic
+@using System.Threading;
+@inject ApplicationDbContext dbContext
+@inject NavigationManager NavigationManager
+
+<TitleContainer content="@title" />
+<br>
+
+@{
+    if (showAlert == true)
+    {
+        <AlertMessage content="@alertMessage"
+                      alertType="@alertType" />
+
+
+    }
+
+
+}
+
+<ApplicationsTable applicationList="@applicationList"
+               SetState__parentEvent="@SetState"
+               SetApplication__parentEvent="@SetApplication"
+               SetAlertMessage__ParentEvent="@SetAlertMessage"
+               SetAlertType__ParentEvent="@SetAlertType"
+               ShowAlert__ParentEvent="@ShowAlert"
+               SetAppplicationList__parentEvent="@SetApplicationList" />
+<br>
+<button class="btn btn-primary" data-bs-toggle="collapse" href="#collapseDowntime" role="button" aria-expanded="false" aria-controls="collapseDowntime">ADD ENTRY</button>
+<br>
+<br>
+<div class="collapse multi-collapse gray-container" id="collapseDowntime">
+    <h5>
+        Add new record
+    </h5>
+    <br>
+    <ApplicationForm application="@application"
+                  state="@state"
+                  applicationList="@applicationList"
+                  SetState__parentEvent="@SetState"
+                  SetApplication__parentEvent="@SetApplication"
+                  SetApplicationList__parentEvent="@SetApplicationList"
+                  SetAlertMessage__ParentEvent="@SetAlertMessage"
+                  SetAlertType__ParentEvent="@SetAlertType"
+                  ShowAlert__ParentEvent="@ShowAlert" />
+
+</div>
+
+@code {
+
+    string title = "Applications";
+    string state = "create";
+    Application application;
+    List<Application> applicationList;
+    bool showAlert = false;
+    string alertMessage = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut in viverra lorem, et dapibus nibh. Vestibulum commodo interdum ex eget aliquam. Duis viverra massa at sapien varius, non ornare ligula porttitor.";
+    string alertType = "alert alert-primary";
+    private int currentTime;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        application = new Application();
+        applicationList = dbContext.Application.ToList();
+
+    }
+
+    void SetState(string state)
+    {
+        this.state = state;
+    }
+
+    void SetApplication(Application application)
+    {
+        this.application = application;
+    }
+
+    public void SetApplicationList(List<Application> applicationList)
+    {
+        this.applicationList = applicationList;
+
+    }
+
+
+    async Task ShowAlert(bool showAlert)
+
+    {
+        this.showAlert = showAlert;
+        var timer = new Timer(new TimerCallback(_ =>
+     {
+         currentTime++;
+         InvokeAsync(() =>
+     {
+         StateHasChanged();
+         this.showAlert = false;
+     });
+     }), null, 5000, 5000);
+
+
+
+    }
+
+    async Task HideAlert()
+    {
+
+        await Task.Delay(2);
+        this.showAlert = false;
+
+
+    }
+
+
+
+    void SetAlertMessage(string alertMessage)
+    {
+        this.alertMessage = alertMessage;
+
+    }
+
+    void SetAlertType(string alertType)
+    {
+        this.alertType = alertType;
+
+
+    }
+
+}

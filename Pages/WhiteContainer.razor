@@ -1,0 +1,19 @@
+@inject IJSRuntime JS
+
+<div class="white-container">
+    <!-- <RadzenButton Icon="arrow_circle_left" ButtonStyle="ButtonStyle.Primary" Click=@(args => GoBack()) /> -->
+    @ChildContent
+</div>
+<script suppress-error="BL9992">
+</script>
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private async Task GoBack()
+    {
+        await JS.InvokeVoidAsync("history.back");
+    }
+
+}

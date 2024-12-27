@@ -1,0 +1,165 @@
+@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+@inject DialogService DialogService
+@inject NavigationManager _navigationManager
+@inject ProtectedSessionStorage ProtectedSessionStore
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject AuthTest authTest;
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnv
+@using System.Web
+
+<center>
+
+    <div style="width:50%; height:100vh;">
+        @{
+            if (invalidCredentials == true)
+            {
+
+                <div class="alert alert-danger" role="alert">
+                    @authMessage
+                </div>
+
+            }
+
+        }
+
+
+    </div>
+
+</center>
+
+
+@code {
+    ActiveDirectoryCon adCon = new ActiveDirectoryCon();
+    User user = new User();
+    bool invalidCredentials = false;
+    [Parameter]
+    public EventCallback<bool> setIsSignin__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<User> setUser__parentEvent { get; set; }
+
+    private string authMessage = default!;
+    private string surnameMessage = default!;
+    private IEnumerable<Claim> _claims = Enumerable.Empty<Claim>();
+    public string testUser = default;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Initializer testInit = new Initializer(dbContext);
+        testInit.createRequiredPages();
+        testInit.initMenuPages();
+        //testInit.initRoles();
+        //testInit.initDepartments();
+        //testInit.initUsers("INFORMATION TECHNOLOGY");
+
+        //TO RUN THE APP IN DEVELOPMENT ENVIRONMENT RUN THE FOLLOWING DOTNET COMMAND IN COMMAND LINE:
+        //dotnet run --environment Development
+
+        invalidCredentials = false;
+
+        string envVariable = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+        string username;
+        bool isAuthenticated = false;
+        var identity = await authTest.GetIdentity();
+        if (envVariable == "Development")
+        {
+            isAuthenticated = true;
+            username = new System.Security.Principal.WindowsPrincipal(System.Security.Principal.WindowsIdentity.GetCurrent()).Identity.Name! ?? "UNKNOWN_USERNAME";
+            username = username.Replace("DOMAIN", "");
+            username = username.Replace(@"\", "");
+            username = username.ToLower();
+
+
+        }
+        else
+        {
+            identity = await authTest.GetIdentity();
+            testUser = identity.Name;
+
+            var test = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var testuser = test.User;
+            isAuthenticated = identity.IsAuthenticated;
+            username = identity.Name;
+            username = username.Replace("DOMAIN", "");
+            username = username.Replace(@"\", "");
+            username = username.ToLower();
+
+        }
+
+        if (isAuthenticated)
+        {
+
+
+            if (adCon.GetAUser(username) != null)
+            {
+
+                if (dbContext.UserRole.Any(u => u.Username == username))
+                {
+
+
+                    UserRole userRole = dbContext.UserRole.First(u => u.Username == username);
+                    user = adCon.GetAUser(username);
+                    user.Role = userRole.RoleName;
+                    user.Name = userRole.Name;
+                    user.Department = dbContext.Department.First(d => d.ID == userRole.DepartmentID).Name;
+                    await ProtectedSessionStore.SetAsync("username", username);
+                    
+                   
+
+
+                   
+                    if (dbContext.UserSubdepartment.Any(u => u.Username == username))
+                    {
+                        UserSubdepartment userSubdepartment = dbContext.UserSubdepartment.First(u => u.Username == username) ?? new UserSubdepartment();
+                        
+                        await ProtectedSessionStore.SetAsync("user", user.Name);
+                        await ProtectedSessionStore.SetAsync("department", user.Department);
+                        await ProtectedSessionStore.SetAsync("role", user.Role);
+                        await ProtectedSessionStore.SetAsync("subdepartment", userSubdepartment.SubdepartmentID);
+                        setUser__parentEvent.InvokeAsync(user);
+                        setIsSignin__parentEvent.InvokeAsync(true);
+
+                    }
+                    else
+                    {
+                        authMessage = "Your are not part of any department in IT, ask the administrator to add you";
+                        invalidCredentials = true;
+
+                    }
+                   
+
+                }
+
+
+            }
+            else
+            {
+                authMessage = "Invalid Credentials.";
+                invalidCredentials = true;
+
+            }
+
+
+        }
+        else
+        {
+            authMessage = "Invalid Credentials.";
+            invalidCredentials = true;
+
+
+        }
+
+
+
+    }
+
+
+
+}
+
+
+

@@ -1,0 +1,208 @@
+@page "/menu"
+
+@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+
+
+    <TitleContainer content="@title" />
+    <br>
+    @{
+        if (showAlert == true)
+        {
+            <AlertMessage content="@alertMessage"
+                          alertType="@alertType"
+                          HideAlert__ParentEvent="@HideAlert" />
+
+
+        }
+
+
+    }
+
+    <div class="row">
+        <div class="col-sm-12">
+            <div>
+                <h3>
+                    Menu Items
+                </h3>
+                <br>
+            </div>
+            <MenuItemsTable items="@items"
+                            reloadMenuItems__parentEvent="@reloadMenuItems"
+                            reloadPages__parentEvent="@initPages"
+                            SetAlertMessage__ParentEvent="@SetAlertMessage"
+                            SetAlertType__ParentEvent="@SetAlertType"
+                            ShowAlert__ParentEvent="@ShowAlert" />
+        </div>
+    </div>
+    <br>
+    <div class="row">
+        <div class="col-sm-6">
+            <h3>
+                Add Pages to Main Menu
+            </h3>
+            <br>
+            <MenuPagesTable setPageID__parentEvent="@setPageID"
+                            showForm__parentEvent="@showForm"
+                            setPageType__parentEvent="@setPageType"
+                            pages="@pages" />
+        </div>
+        <div class="col-sm-6">
+            <h3>
+                Add Projects to Main Menu
+            </h3>
+            <br>
+            <MenuProjectsTable setPageID__parentEvent="@setPageID"
+                               setPageType__parentEvent="@setPageType"
+                               showForm__parentEvent="@showForm"
+                               projects="@projects" />
+        </div>
+
+    </div>
+
+
+
+    <br>
+    <div style="width:100%;">
+        @{
+            if (form == true)
+            {
+                <MenuItemForm 
+                              pageID="@pageID"
+                              type="@type"
+                              showForm__parentEvent="@showForm"
+                              reloadMenuItems__parentEvent="@reloadMenuItems"
+                              reloadPages__parentEvent="initPages"
+                              SetAlertMessage__ParentEvent="@SetAlertMessage"
+                              SetAlertType__ParentEvent="@SetAlertType"
+                              ShowAlert__ParentEvent="@ShowAlert" 
+                              />
+            }
+        }
+
+    </div>
+
+@code {
+
+    bool form = false;
+    int pageID = 0;
+    string type = "";
+    List<MenuItem> items;
+    List<SinglePage> pages;
+    List<Project> projects;
+    string title = "Edit Menu items";
+    bool showAlert = false;
+    string alertMessage = "";
+    string alertType = "alert alert-primary";
+    private int currentTime;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        items = dbContext.MenuItem.OrderBy(i => i.Name).ToList();
+        initPages();
+        initProjects();
+
+
+    }
+
+
+    void initPages()
+    {
+        List<MenuItem> menuItems = dbContext.MenuItem.OrderBy(i => i.PageID).ToList();
+        List<SinglePage> tmpPages;
+        tmpPages = dbContext.SinglePage.OrderBy(p => p.Name).ToList();
+        pages = new List<SinglePage>();
+        foreach (var page in tmpPages)
+        {
+            if (page.Name != "About")
+            {
+                if (!dbContext.MenuItem.Any(i => i.PageID == page.ID && i.Type == "singlePage"))
+                {
+                    pages.Add(page);
+                }
+            }
+        }
+
+    }
+
+    void initProjects()
+    {
+
+        List<MenuItem> menuItems = dbContext.MenuItem.OrderBy(i => i.PageID).ToList();
+        List<Project> tmpProjects;
+        tmpProjects = dbContext.Project.OrderBy(p => p.Name).ToList();
+        projects = new List<Project>();
+        foreach (var project in tmpProjects)
+        {
+
+            if (!dbContext.MenuItem.Any(i => i.PageID == project.ID && i.Type == "project"))
+            {
+                projects.Add(project);
+            }
+
+        }
+
+    }
+
+
+    void reloadMenuItems()
+    {
+        items = dbContext.MenuItem.OrderBy(i => i.Name).ToList();
+
+    }
+    void showForm(bool form)
+    {
+        this.form = form;
+    }
+
+    void setPageID(int pageID)
+    {
+        this.pageID = pageID;
+    }
+    void setPageType(string type)
+    {
+        this.type = type;
+
+    }
+
+
+    void ShowAlert(bool showAlert)
+
+    {
+        this.showAlert = showAlert;
+        var timer = new Timer(new TimerCallback(_ =>
+        {
+            currentTime++;
+            InvokeAsync(() =>
+           {
+               StateHasChanged();
+               this.showAlert = false;
+           });
+        }), null, 5000, 5000);
+
+
+    }
+
+    void HideAlert()
+    {
+
+        this.showAlert = false;
+    }
+
+    void SetAlertMessage(string alertMessage)
+    {
+        this.alertMessage = alertMessage;
+
+    }
+
+    void SetAlertType(string alertType)
+    {
+        this.alertType = alertType;
+
+
+    }
+
+}

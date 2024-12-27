@@ -1,0 +1,21 @@
+<div class="bucket" style="@style">
+    <a href="@link" class="bucket-hover" style="color:#fff;">
+    <div >
+        <center>
+           
+                @content
+           
+           </center>
+    </div>
+    </a>
+</div>
+
+@code {
+
+    [Parameter]
+    public string? content { get; set; }
+    [Parameter]
+    public string? link { get; set; }
+    [Parameter]
+    public string? style { get; set; }
+}

@@ -1,0 +1,177 @@
+ID,LPAR,SymNo,DiskQuantity,SizeMB,VersionSP,SystemDate,SYMCreationDate,Status,Owner,PointContact,SymFunctionality,CurrentTesting,ActiveCWRTested,PhysicalLocation,Notes,AuthorName,DateTime,ModifiedBy,ModifiedDate,DevicesConfigured
+70,123,,,,,,,Active,,,,,,,,System,2024-09-02 14:33:38.433,,,
+71,SYMITAR1_BLUE,SYM000,0,187129.7,2021.01 SP4,Current Date,2019-07-24 00:00:00,Active,FLFCU,Live,Do Not Delete,,,,,System,2024-09-02 14:33:38.433,,,"ATM Network: ON HOST
+Credit Retrieval- ON HOST
+FICS Server- ON HOST
+SymConnect- ON HOST
+SymXchange- INCENTAP & REWARDS
+Synapsys SynServer- Communication Enabled
+UX Services- ON HOST"
+72,SYMITAR1_BLUE,SYM001,1,159176.3,2021.01 SP4,Current Date,2019-07-25 00:00:00,Active,FLFCU,Live,Do Not Delete,,,,,System,2024-09-02 14:33:38.433,,,Synapsys SynServer Communication Enabled
+73,SYMITAR1_BLUE,SYM158,1,159151.3,2021.01 SP4,Current (-1m) EOM,2019-07-25 00:00:00,Active,,," Monthly-Mos 3/6/9/12
+[Both GN.BEFORE.OFFLINE.ME.JOB and GN.AFTER.OFFLINE.ME.JOB have run – includes Dividend and Monthly Fees job postings]",Full sym - do not bring online - kept for research purpose only - no testing Unsure what this sym is used for but was not on the list.,,,,System,2024-09-02 14:33:38.433,,,Synapsys SynServer Communication Enabled
+74,SYMITAR1_BLUE,SYM258,1,160873.6,2021.01 SP4,Current (-3M) EOM,2019-07-25 00:00:00,Active,,,Monthly-Mos. 1/4/7/10[Both GN.BEFORE.OFFLINE.ME.JOB and GN.AFTER.OFFLINE.ME.JOB have run – includes Dividend and Monthly Fees job postings],,,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 36 Cash Dispensers Configured
+Synapsys SynServer Communication Enabled "
+75,SYMITAR1_BLUE,SYM272,1,163458.9,2021.01 SP4,Current Date,2019-07-25 00:00:00,Active,,ARCU,Daily arcu and temenos exports- do not delete,,,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 37 Cash Dispensers Configured
+Synapsys SynServer- Communication Enabled"
+76,SYMITAR1_BLUE,SYM358,1,157829.9,2021.01 SP4,Current (-2M) EOM,2019-07-25 00:00:00,Active,,Monthly MOS,"Monthly-Mos. 2/5/8/11
+Full sym - do not bring online - kept for research purpose only - no testing allowed
+[Both GN.BEFORE.OFFLINE.ME.JOB and GN.AFTER.OFFLINE.ME.JOB have run – includes Dividend and Monthly Fees job postings]",,,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 37 Cash Dispensers Configured
+Synapsys SynServer- Communication Enabled"
+77,SYMITAR1_BLUE,SYM558,1,157415.2,2021.01 SP4,EOM before close day,2019-07-25 00:00:00,Active,,ME SYM,"This sym is created before statements are run (before we pay dividends and before monthly maintenance fees). GN.BEFORE.OFFLINE.ME.JOB has run.
+Do not bring online, no testing allowed",,,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 37 Cash Dispensers Configured
+Synapsys SynServer- Communication Enabled"
+78,SYMITAR1_BLUE,SYM620,1,,2022.01,2023-06-02 00:00:00,2023-06-19 00:00:00,Active,Maggie,Maggie,Testing SymAdvisor with Symitar.,,,,,System,2024-09-02 14:33:38.433,,,
+79,SYMITAR1_BLUE,SYM658,1,186833.8,2021.01 SP4,daily Before Closeday,2019-07-25 00:00:00,Active,,,Month-end SYM 658 – copy of month end sym (Both GN.BEFORE.OFFLINE.ME.JOB and GN.AFTER.OFFLINE.ME.JOB have run – includes Dividend and Monthly Fees job postings)  •	Core ops will automatically make a copy of sym658 when a month-end sym is requested unless asked otherwise.,,,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 37 Cash Dispensers Configured
+Synapsys SynServer- Communication Enabled"
+80,SYMITAR1_BLUE,SYM700,0,199262,2021.01 SP4,2022-02-10 00:00:00,2020-04-13 00:00:00,Active,,CU Tester,"ATM Dialog- DO NOT REMOVE
+
+Sym700 is intended for ATM / ATM parameter testing as it is our CU Tester sym.  This means it gets a copy of Production ATM transactions real-time. There is no correlation between sym 0 and sym 700 so balances are independent of each other.  ","?RFC-146-Business Wire Fee - Share ID 1001&1002 (Rosa, Bruno, Elizabeth)
+?Hyosung implementation
+",,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 37 Cash Dispensers Configured
+Synapsys SynServer- Communication Enabled"
+81,SYMITAR1_BLUE,SYM758,1,186173.6,2021.01 SP4,Currente Date ,2019-07-25 00:00:00,Active,,,,,,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 37 Cash Dispensers Configured
+Synapsys SynServer- Communication Enabled"
+82,SYMITAR1_BLUE,SYM858,0,159412.5,2021.01 SP4,EOM,2019-07-25 00:00:00,Active,,ME SYM,Month-end Sym 858 – copy of daily sym 658 (Both GN.BEFORE.OFFLINE.ME.JOB and GN.AFTER.OFFLINE.ME.JOB have run – includes Dividend and Monthly Fees job postings),,,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 37 Cash Dispensers Configured
+Synapsys SynServer- Communication Enabled"
+83,SYMITAR_BLUE,ATM Dialog,1,88857,2021.01 SP4,,,Active,,,,,,,,System,2024-09-02 14:33:38.433,,,
+84,"SYMITAR1_DEV (Disk 0 Size = 73%)
+Threshold 60% (partition has a connection to Opcon)
+LPAR is on Release 2021.01 SP4
+Host: ""Symdev""",,,,,,,Active,,,,,,,,System,2024-09-02 14:33:38.433,,,
+85,SYMITAR1_DEV,SYM000,0,134052.1,2021.01 SP4,Current Date,2019-07-25 00:00:00,Active,FLFCU,,"Do Not Delete
+Cannot complete RFC testing on this Sym. This is a back up of live should it be needed. ",,,,,System,2024-09-02 14:33:38.433,,,"ATM Network: ON HOST
+Credit Retrieval- ON HOST
+FICS Server- ON HOST
+SymConnect- ON HOST
+SymXchange- INCENTAP & REWARDS
+Synapsys SynServer- Communication Enabled
+UX Services- ON HOST"
+86,SYMITAR1_DEV,SYM001,0,115015.8,2021.01 SP4,,,Active,,,,"Sym created when Release 2020 had been loaded and Database upgraded.
+",,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 36 Cash Dispensers Configured
+Synapsys SynServer Communication Enabled "
+87,SYMITAR1_DEV,SYM121,0,182734.8,2021.01 SP4,2022-03-01 00:00:00,2022-01-21 00:00:00,Active,,,Business and Consumer Fees testing,"RFC 294: 2023 Business Fee Change: Business Remote Deposit Capture (Rosa Adams, Ari Amaro, Elizabeth Raygoza)",,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 36 Cash Dispensers Configured
+Synapsys SynServer Communication Enabled "
+88,SYMITAR1_DEV,SYM228,0,161879.8,2023.00SP02,2024-02-22 00:00:00,2023-02-28 00:00:00,Active,Barry Russell,Barry,RFC-280,RFC-281,,,,System,2024-09-02 14:33:38.433,,,
+89,SYMITAR1_DEV,SYM315,0,181180,2021.01 SP4,2022-03-01 00:00:00,2021-03-15 00:00:00,Active,Bruno,,Permanent SYM for Software Development Team,"
+Per Ari sym may not be deleted
+
+",,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 37 Cash Dispensers Configured
+Synapsys SynServer- Communication Enabled"
+90,SYMITAR1_DEV,SYM311,,,,2023-12-31 00:00:00,2023-10-10 00:00:00,Active,"Roberto, Erick","Roberto, Erick",2023.01 Symitar Release,,,,,System,2024-09-02 14:33:38.433,,,
+91,SYMITAR1_DEV,SYM317,0,186169.5,2021.01 SP4,2021-11-23 00:00:00,2021-03-17 00:00:00,Active,,,Temenos Org Project," Do not delete
+",,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 36 Dispensers Configured
+Synapsys SynServer- Communicatin Enabled"
+92,SYMITAR1_DEV,SYM404,0,178526.2,2021.01 SP4,2022-02-28 00:00:00,2022-04-04 00:00:00,Active,Arianni Amaro,Arianni Amaro,,SymForm Testing,,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 37 Cash Dispensers Configured
+Synapsys SynServer- Communication Enabled"
+93,SYMITAR1_DEV,SYM502,0,166447.3,2021.01 SP4,2022-05-02 00:00:00,2022-05-02 00:00:00,Active,Maggie,"Ari, Rosa Adams",CUTEK Development ,"RFC 146: Business Wire Fee Share IS 1001 & 1002
+(Ari, Elizabeth, Rosa)",,,,System,2024-09-02 14:33:38.433,,,
+94,SYMITAR1_DEV,SYM620,0,166877.2,2021.01 SP4,2022-07-15 00:00:00,2020-12-09 00:00:00,Active,FLFCU,,"This sym is the new sym 620.  Has connection to Meridian Link
+ (Beta), Card Wizard Test, Symconnect
+Sym for Cutek
+IF Refresh needed- pull symxchange files ","Never refresh, org projects by default are worked on this sym. Do not delete
+As of 5/19/22  sym is being used for Business RDC project
+
+RFC 144 - Title Received E Title Update (Jesus/Elizabeth/Bruno)- Do not delete
+DO NOT REFRESH CUTEK is working Luna updates here with Andy KACE:168671
+",,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 37 Cash Dispensers Configured
+FICS Server- ON HOST
+SymConnect- ON HOST
+SymXchange-  INCENTAP, Novelvox, POSH, REWARDS
+Synapsys SynServer- Communication Enabled"
+95,SYMITAR1_DEV,SYM777,0,167832.1,2021.01 SP4,2020-09-19 00:00:00,2020-10-07 00:00:00,Active,,Maggie,"ATM Certification Sym
+","Do Not Delete EVER/Closeday runs every day
+5/11- Maggie working with Symitar on ticket 13509314- new code installed
+.",,,,System,2024-09-02 14:33:38.433,,,"ATM Network- on Host  Cash Dispensers- 37 Cash Dispernsers Configured
+SymXchange- REWARDS- OFF HOST
+Synapsys SynServer- Communicatin Enabled
+"
+96,SYMITAR_DEV,ATM Dialog,0,2656.6,2021.01 SP4,,,Active,,,,,,,,System,2024-09-02 14:33:38.433,,,
+97,"SYMITAR2_BLUE (Disk 0 Size = 54%  Disk 1 Size = 12%)
+Threshold 60% (partition has a connection to Opcon)
+LPAR is on Release 2021.01 SP4",,,,,,,Active,,,,,,,,System,2024-09-02 14:33:38.433,,,
+98,SYMITAR2_BLUE,SYM000,0,187695.7,2021.01 SP4,CURRENT DAY,2019-07-25 00:00:00,Active,FLFCU,FLFCU,Do Not Delete,,,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 37 Cash Dispensers Configured
+Recovery Post- ON HOST
+SymXchange- INCENTAP& REWARDS- OFF HOST
+Synapsys SynServer- Communication Enabled
+"
+99,SYMITAR2_BLUE,SYM001,1,114868.1,2021.01 SP4,CURRENT DAY,2020-03-11 00:00:00,Active,FLFCU,FLFCU,Do Not Delete,,,,,System,2024-09-02 14:33:38.433,,,
+100,SYMITAR2_BLUE,SYM658,0,187991.3,2021.01 SP4,Current Date (-1D),2019-07-25 00:00:00,Active,,Daily Before Closeday,Do Not Delete,,,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 37 Cash Dispensers Configured
+Synapsys SynServer- Communication Enabled"
+101,SYMITAR2_BLUE,SYM700,1,119231.8,2021.01 SP4,2020-02-06 00:00:00,2020-03-02 00:00:00,Active,,CU Tester,"Do Not Delete
+Needed to have ATM Network Installed Symitar case: 11781744
+
+Sym has incoming transactions from live. Must have CU Tester on before testing.","RFC - Online Main Parameter/Pre-Authorization Option (Monica, Elizabeth, Core Ops TBD)",,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 36 Cash Dispensers Configured
+Synapsys SynServer- Communication Enabled
+"
+102,SYMITAR2_BLUE,SYM758,0,186176.4,2021.01 SP4,Current Date,"Current Date
+",Active,,Daily After Closeday,Do Not Delete,,,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 37 Cash Dispensers Configured
+Synapsys SynServer- Communication Enabled"
+103,SYMITAR2_BLUE,SYM858,1,130174,2021.01 SP4,2020-11-06 00:00:00,2020-11-06 00:00:00,Active,,Monthly MOS,Full sym - do not bring online - kept for research purpose only - no testing allowed,,,,,System,2024-09-02 14:33:38.433,,,
+104,SYMITAR2_BLUE,SYM999,0,112742.5,,,,Active,,,Core Ops test sym,,,,,System,2024-09-02 14:33:38.433,,,
+105,SYMITAR2_BLUE,ATM Dialog,0,40290.7,2021.01 SP4,,2019-07-25 00:00:00,Active,,,,,,,,System,2024-09-02 14:33:38.433,,,
+106,"SYMITAR2_TRAIN (Disk 0 Size = 48%)
+Threshold 60% (partition has a connection to Opcon)
+LPAR is on Release 2021.01 SP4
+Host ""Symtrain""",,,,,,,Active,,,,,,,,System,2024-09-02 14:33:38.433,,,
+107,SYMITAR2_TRAIN,SYM000,0,155280.7,2021.01 SP4,CURRENT DAY,2019-07-25 00:00:00,Active,FLFCU,FLFCU,,,,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 36 Cash Dispensers Configrued
+Synapsys SynServer- Communication Enabled"
+108,SYMITAR2_TRAIN,SYM111,0,175531.3,2021.01 SP4,2022-12-01 00:00:00,,Active,CoreOps,CoreOps,End of Year 2022 Tax Testing Purposes,,,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 36 Cash Dispensers Configured
+Synapsys SynServer- Communication Enabled
+"
+109,SYMITAR2_TRAIN,SYM122,0,,,2023-09-28 00:00:00,2023-02-02 00:00:00,Active,Arianni Amaro,Arianni Amaro,,RFC-271  Prov Credit,,,,System,2024-09-02 14:33:38.433,,,
+110,SYMITAR2_TRAIN,SYM218,0,17295.2,,2023-12-18 00:00:00,2023-12-18 00:00:00,Active,Arianni Amaro,Arianni Amaro,2024 Fee Changes,2024 Fee Changes,,,,System,2024-09-02 14:33:38.433,,,
+111,SYMITAR2_TRAIN,SYM221,0,,,2024-01-31 00:00:00,2024-02-21 00:00:00,Active,Arianni Amaro,Arianni Amaro,,Businesss Account Analysis,,,,System,2024-09-02 14:33:38.433,,,
+112,SYMITAR2_TRAIN,SYM328,0,,2022.01,2023-03-28 00:00:00,2023-03-28 00:00:00,Active,Arianni Amaro,Arianni Amaro,,VISIBLE EQUITY RFC279,,,,System,2024-09-02 14:33:38.433,,,
+113,SYMITAR2_TRAIN,SYM404,0,,,2024-03-31 00:00:00,,Active,,,,,,,,System,2024-09-02 14:33:38.433,,,
+114,SYMITAR2_TRAIN,SYM616,0,168457.8,2022.01,2023-09-07 00:00:00,2023-06-16 00:00:00,Active,Arianni Amaro,Ari,,RFC 367,,,,System,2024-09-02 14:33:38.433,,,
+115,SYMITAR2_TRAIN,SYM876,0,169701.6,2021.01 SP4,2022-12-03 00:00:00,2019-07-25 00:00:00,Active,TRAINING,,"New accounts training
+Meridian Link testing (DEMO)
+Symforms
+(Symconnect)","*****REMOVED RFC CLOSED******RFC 236-Tracking Record BSA Update  (Shannon, Jesus, Elizabeth)
+","**Lending and Retail test here for Meridian Link LPQ & XA**
+",,,System,2024-09-02 14:33:38.433,,,"Cash Dispnsers= 37 Cash Dispensers Configured
+SymConnect- ON Host
+Synapsys SynServer- Communication Enabled"
+116,SYMITAR2_TRAIN,SYM877,0,181589.9,2021.01 SP4,2020-09-21 00:00:00,2019-07-25 00:00:00,Active,TRAINING,,"Teller Training
+Symforms",,,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 36 Cash Dispensers
+Synapsys SynServer- Communication Enabled"
+117,SYMITAR2_TRAIN,ATM Dialog,0,2117.7,2021.01 SP4,,2019-07-25 00:00:00,Active,,,,,,,,System,2024-09-02 14:33:38.433,,,
+118,SYMITAR2_TRAIN,SYM273,0,171730.4,2023.01 SP02,2024-03-30 00:00:00,2024-03-27 00:00:00,Active,THELMA NORA,THELMA NORA,PRODUCTION TEST SYM,PRODUCTION TEST SYM,,,,System,2024-09-02 14:33:38.433,,,PRODUCTION TEST SYM
+119,SYMITAR2_TRAIN,SYM106,0,,,2023-12-31 00:00:00,2023-10-06 00:00:00,Active,Erika Gonzalez,Erika Gonzalez,Tax testing 2023,Tax Testing 2023,,,,System,2024-09-02 14:33:38.433,,,
+120,"SYMITAR3_BLUE (Disk 0 Size = 31%, Disk 1 Size = 52%)
+Threshold 60% (partition has a connection to Opcon)
+LPAR is on Release 2021.01 SP4",,,,,,,Active,,,,,,,,System,2024-09-02 14:33:38.433,,,
+121,SYMITAR3_BLUE,SYM000,0,181107.2,2021.01 SP4,CURRENT DAY,2019-07-25 00:00:00,Active,FLFCU,FLFCU,Do Not Delete,,,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 37 Cash Dispensers Configured
+Recovery Post- On Host
+SymXchange- INCENTAP & REWARDS (OFF HOST)
+"
+122,SYMITAR3_BLUE,SYM001,1,155870.7,2021.01 SP4,,,Active,,,,,,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 37 Cash Dispsensers Configured
+Synapsys SynServer- Communication Enabled"
+123,SYMITAR3_BLUE,SYM224,,,,,2023-02-24 00:00:00,Active,Hector,Hector,Created for Symitar to test ACH Posting issue,,,,,System,2024-09-02 14:33:38.433,,,
+124,SYMITAR3_BLUE,SYM225,,,,,2023-02-24 00:00:00,Active,Hector,Hector,Created for Symitar to test ACH Posting issue,,,,,System,2024-09-02 14:33:38.433,,,
+125,SYMITAR3_BLUE,SYM272,1,159803.9,2021.01 SP4,,,Active,,,ARCU,,,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 37 Cash Dispsensers Configured
+Synapsys SynServer- Communication Enabled"
+126,SYMITAR3_BLUE,SYM412,1,163706.2,2021.01 SP4,2022-04-01 00:00:00,2022-04-01 00:00:00,Active,unknown,unknown,Unknown does not have SSO configured on it and no info on the signon page.,,,,,System,2024-09-02 14:33:38.433,,,
+127,SYMITAR3_BLUE,SYM658,1,159281.4,2021.01 SP4,Daily Before Closeday,2019-07-25 00:00:00,Active,,Daily Before Closeday,Do No Delete,,,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 37 Cash Dispensers Configured
+Synapsys SynServer- Communication Enabled"
+128,SYMITAR3_BLUE,SYM758,0,161426.1,2021.01 SP4,,2019-07-25 00:00:00,Active,,Daily After Closeday,Do Not Delete,,,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 37 Cash Dispensers
+Synapsys SynServer- Communiction Enabled"
+129,SYMITAR3_BLUE,ATM Dialog,0,31685.4,2021.01 SP4,,2019-07-25 00:00:00,Active,,,,,,,,System,2024-09-02 14:33:38.433,,,
+130,"SYMITAR3_TEST (Disk 0 Size = 78%)
+Threshold 60% (partition has a connection to Opcon)
+LPAR is on Release2021.01 SP4
+Host ""Symtest""",,,,,,,Active,,,,,,,,System,2024-09-02 14:33:38.433,,,
+131,SYMITAR3_TEST,SYM000,0,132045.1,2021.01 SP4,CURRENT DAY,2019-07-25 00:00:00,Active,FLFCU,FLFCU,Do Not Delete,,,,,System,2024-09-02 14:33:38.433,,,
+132,SYMITAR3_TEST,SYM103,0,174580.5,2021.01 SP4,,2020-12-09 00:00:00,Active,Charles Cepeda,Charles,Tax Form testing,Tax form Testing,,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 36 Cash Dispensers Configured
+Synapsys SynServer- Communication Enabled
+"
+133,SYMITAR3_TEST,SYM119,0,162304.4,2022,2022-11-09 00:00:00,2022-11-09 00:00:00,Active,Arianni Amaro,Ari/Allion,Testing Collection ToolKit,,,,,System,2024-09-02 14:33:38.433,,,
+134,SYMITAR3_TEST,SYM506,0,136000,2021.01 SP4,2020-12-31 00:00:00,2020-05-06 00:00:00,Active,Becky Ramirez,Stephanie Stadel,,Testing with Symitar on Case#: 11200468 (Aaron Minsch/Becky) - Still testing 8/10/21,,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 36 Cash Dispensers Configured
+Synapsys SynServer- Communication Enabled
+"
+135,SYMITAR3_TEST,SYM928,0,182906,2021.01 SP4,,2020-09-28 00:00:00,Active,,Ari/Elizabeth,,RFC41 - Zero Balance Shares - (Martha/Bruno/Elizabeth),,,,System,2024-09-02 14:33:38.433,,,"Cash Dispensers- 37 Cash Dispensers Configured
+Synapsys SynSever- Communication Enabled"
+136,SYMITAR3_TEST,SYM208,0,165157,,2024-02-08 00:00:00,2024-02-08 00:00:00,Active,Arianni Amaro,Arianni Amaro,,RFC407 Sharetype Reclass,,,,System,2024-09-02 14:33:38.433,,,RFC 407 Sharetype Reclass
+137,SYMITAR3_TEST,SYM220,0,164555.3,2023.01,2024-05-21 00:00:00,2024-02-20 00:00:00,Active,Dev,THELMA NORA,RFC 488,RFC 488,,,,System,2024-09-02 14:33:38.433,,,RFC488
+138,SYMITAR3_TEST,ATM Dialog,0,1896.1,2021.01 SP4,,2019-07-25 00:00:00,Active,,,,,,,,System,2024-09-02 14:33:38.433,,,

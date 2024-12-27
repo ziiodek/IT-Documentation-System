@@ -1,0 +1,432 @@
+@using ITDocumentation.Data
+@using ITDocumentation.Classes
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+@inject ProtectedSessionStorage ProtectedSessionStore
+@using System.Text.Json.Nodes
+
+<div>
+    <RadzenCard>
+        <br>
+        <h5>Documents</h5>
+        <br>
+
+        @{
+            if (showAlert == true)
+            {
+                <DocumentsAlert alertType="@alertType"
+                              content="@alertContent"
+                              HideAlert__ParentEvent="@HideAlert" />
+
+
+            }
+        }
+        <div class="row">
+
+            @{
+                if(state == "update")
+                {
+                <div class="col-sm-6">
+                    <RadzenButton Icon="save" Text="Save" Click="@Submit" />
+                    <RadzenButton Icon="cancel" style="display: inline-block; margin-left: 10px;" Text="Cancel" Click="@Cancel" />
+                    </div>
+                }
+            
+            }
+
+
+        </div>
+        
+        <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Choose files to upload</RadzenText>
+        <RadzenUpload @ref="uploadLocal" Auto="false" Accept=".pdf,.docx,.csv,.xls,.xlsx" Name="File" Url="@uploadUrl" Complete=@(args => OnComplete(args)) Progress=@(args => OnProgress(args)) class="w-100" />
+
+    </RadzenCard>
+
+</div>
+
+
+@code{
+
+    [Parameter]
+    public int pageID { get; set; }
+    [Parameter]
+    public EventCallback ReloadDocumentsTable__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback ReloadPendingDocumentsTable__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<RadzenUpload> SetUploadComponent__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<bool> SetUploadCompleted__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback DisplayPendingDocuments__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<List<string>> SetDocumentsTags__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetPageState__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<int> SetPageId__parentEvent { get; set; }
+    [Parameter]
+    public string state { get; set; }
+    [Parameter]
+    public int documentID { get; set; }
+
+
+    [Parameter]
+    public RadzenDataGrid<Document> documentsGrid { get; set; }
+    [Parameter]
+    public string parent { get; set; }
+    [Parameter]
+    public string pageState { get; set; }
+    [Parameter]
+    public List<Document> documents { get; set; }
+    [Parameter]
+    public List<Document> tmpDocuments { get; set; }
+    [Parameter]
+    public List<PendingDocument> tmpPendingDocuments { get; set; }
+    [Parameter]
+    public DocumentsHandler documentsHandler { get; set; }
+    [Parameter]
+    public List<string> tag { get; set; }
+    RadzenUpload uploadLocal;
+    string uploadUrl;
+    RenderFragment progressBar = null;
+    string message = "";
+    string title = "Documents";
+    string userName = "";
+    string authorName = "";
+    string managerName = "";
+    string authorEmail = "";
+    string managerEmail = "";
+    string userRole = "REGULAR";
+    string fileName = "";
+    bool failed = false;
+    Document document;
+
+
+
+    //List<string>? tagList;
+    JsonReader reader = new JsonReader();
+    //List<DocumentTags> documentTagList = new List<DocumentTags>();
+    //List<string> documentTags = new List<string>();
+
+
+    //string addTag1 = "";
+    //string addTag2 = "";
+    //string addTag3 = "";
+    //string addTag4 = "";
+    string alertContent = "";
+    string alertType = "alert alert-danger";
+    bool showAlert = false;
+    bool hasFiles = false;
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        //tagList = new List<string>();
+        //JsonNode tag = reader.getTags("Tags.json");
+        //foreach (var tagName in tag["Tags"].AsArray())
+        //{
+        //tagList.Add(tagName.ToString());
+        //}
+
+        showAlert = false; 
+
+        GetUserRole();
+        initDirectory();
+        //documentsHandler = new DocumentsHandler(dbContext);
+        var result = await ProtectedSessionStore.GetAsync<string>("username");
+        if (result.Success)
+        {
+            userName = result.Value.ToUpper();
+            authorEmail = userName + "@firstlightfcu.org";
+        }
+
+        result = await ProtectedSessionStore.GetAsync<string>("user");
+        if (result.Success)
+        {
+            authorName = result.Value.ToUpper();
+        }
+
+        SetUploadComponent__parentEvent.InvokeAsync(uploadLocal);
+        var subdepartment = await ProtectedSessionStore.GetAsync<int>("subdepartment");
+        if (subdepartment.Success)
+        {
+            int subdepartmentID = subdepartment.Value;
+            List<UserSubdepartment> usersSubdepartment = dbContext.UserSubdepartment.Where(s => s.SubdepartmentID == subdepartmentID).ToList();
+
+            foreach(var userSubdepartment in usersSubdepartment)
+            {
+
+                UserRole userRole = dbContext.UserRole.First(u => u.Username == userSubdepartment.Username);
+                if (userRole.RoleName == "ADMIN")
+                {
+                    managerName = userRole.Name;
+                    managerEmail = userSubdepartment.Username+"@firstlightfcu.org";
+                   
+
+                }
+
+            }
+        }
+
+    }
+
+    void Submit()
+    {
+
+        //if (tag.Count > 0)
+        //{
+
+        //StoreAdditionalTags();
+        //IncludeCurrentTags();
+        //documentsHandler.setTagsList(tag);
+        //documentsHandler.updateDocumentTags(documentID);
+        //showAlert = true;
+        //alertType = "alert alert-primary";
+        //alertContent = "Document tags updated successfuly";
+        //}
+        state = "";
+        //List<string> documentTags = new List<string>();
+        //tag = new List<string>();
+        //addTag1 = "";
+        //addTag2 = "";
+        //addTag3 = "";
+        //addTag4 = "";
+        ReloadDocumentsTable__parentEvent.InvokeAsync();
+
+    }
+
+    void Cancel()
+
+    {
+        state = "";
+        //List<string> documentTags = new List<string>();
+        //tag = new List<string>();
+        //addTag1 = "";
+        //addTag2 = "";
+        //addTag3 = "";
+        //addTag4 = "";
+
+    }
+
+
+    async Task InitTagList()
+    {
+        //this.documentTags = new List<string>();
+        reader = new JsonReader();
+        string tagString = "";
+        JsonNode documentTags = reader.getTags("DocumentTags.json");
+        JsonObject jsonObj = documentTags.AsObject();
+        if (jsonObj!.ContainsKey(documentID.ToString()))
+        {
+            foreach (var tagName in documentTags[documentID.ToString()].AsArray())
+            {
+
+                this.tag.Add(tagName.ToString());
+            }
+        }
+    }
+
+    void IncludeCurrentTags()
+    {
+
+        /**if (documentTags.Count > 0 )
+        {
+            List<string> tmpTags = new List<string>();
+            foreach (var tagName in tag)
+            {
+
+                foreach (var currentTag in documentTags)
+                {
+
+                    if (tagName != currentTag)
+                    {
+
+                        tmpTags.Add(currentTag);
+                        if (documentTags.Count == 1)
+                        {
+                            tmpTags.Add(tagName);
+
+                        }
+
+
+                    }
+                    else
+                    {
+
+                        tmpTags.Add(tagName);
+
+                    }
+
+
+
+                }
+
+
+            }
+            tag = tmpTags;
+
+        }**/
+
+
+
+    }
+
+    void OnChange()
+    {
+        //SetDocumentsTags__parentEvent.InvokeAsync(tag);
+
+
+    }
+
+    void initDirectory()
+    {
+
+
+        if (pageID <=0)
+        {
+            uploadUrl = "upload/single/tmp" + parent;
+        }
+        else
+        {
+            uploadUrl = "upload/single/" + parent + "/" + pageID;
+        }
+
+
+    }
+
+    void StoreAdditionalTags()
+    {
+
+
+
+        /**if (addTag1 != "")
+        {
+            tag.Add(addTag1);
+        }
+
+        if (addTag2 != "")
+        {
+            tag.Add(addTag2);
+        }
+
+        if (addTag3 != "")
+        {
+            tag.Add(addTag3);
+        }
+
+        if (addTag4 != "")
+        {
+            tag.Add(addTag4);
+        }**/
+
+
+    }
+
+
+    void HideAlert()
+    {
+
+        this.showAlert = false;
+    }
+
+    void OnProgress(UploadProgressArgs args)
+    {
+
+        foreach (var file in args.Files)
+        {
+            message = "Uploading " + file.Name;
+            document = new Document();
+            document.Name = "ver-" + DateTime.Today.ToString("yyyy-MM-dd") + "-" + file.Name;
+            document.Parent = this.parent;
+            document.PageID = this.pageID;
+            document.AuthorName = authorName;
+            document.DateTime = DateTime.Now;
+            document.IsArchive = false;
+            if (CanUpploadDocument() == true)
+            {
+
+                document.Status = "Approved";
+            }
+            else
+            {
+                document.Status = "Pending Approval";
+            }
+
+        }
+
+
+    }
+
+
+
+    bool CanUpploadDocument()
+    {
+        if (userRole == "REGULAR")
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+
+    async void GetUserRole()
+    {
+        var result = await ProtectedSessionStore.GetAsync<string>("role");
+        if (result.Success)
+        {
+            if (result.Value != "REGULAR")
+            {
+                userRole = result.Value;
+            }
+
+        }
+
+
+    }
+
+
+
+    async Task OnComplete(UploadCompleteEventArgs args)
+    {
+        bool documentStatus = await Task.Run(() => documentsHandler.saveDocuments(document, pageState, parent));
+        StateHasChanged();
+
+        if (documentStatus == true)
+        {
+            showAlert = true;
+            alertType = "alert alert-danger";
+            alertContent = "A Document with the same name and version already exists, document was not saved";
+
+        }
+        else
+        {
+
+            showAlert = true;
+            alertType = "alert alert-primary";
+            alertContent = "Document saved successfuly";
+        }
+        Email email = new Email();
+        email.waitingForApprovalMessage(authorName, managerName, authorEmail, managerEmail, document.Name);
+
+
+        ReloadDocumentsTable__parentEvent.InvokeAsync();
+
+        //StateHasChanged();
+        string directoryURL = documentsHandler.getDirectoryURL() + "/" + parent + "/" + pageID + "/";
+        //Console.WriteLine(directoryURL);
+        documentsHandler.moveDirectory(documentsHandler.getTmpDirectoryURL() + parent, directoryURL);
+        SetPageId__parentEvent.InvokeAsync(dbContext.SinglePage.OrderByDescending(s => s.ID).FirstOrDefault().ID);
+        SetPageState__parentEvent.InvokeAsync("update");
+        uploadLocal.ClearFiles();
+        showAlert = false;
+
+
+        
+    }
+
+}

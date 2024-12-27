@@ -1,0 +1,120 @@
+@using ITDocumentation.Data
+@inject ApplicationDbContext dbContext
+@inject ProtectedSessionStorage ProtectedSessionStore
+
+<RadzenTemplateForm Data="@database" Submit="@((Database args) => { Submit(args); })">
+    <div class="row">
+        <div class="col-sm-2 ">
+            <RadzenLabel Text="*Name" />
+        </div>
+        <div class="col-sm-8">
+            <RadzenTextBox @bind-Value=@database.Name Name="Name" style="width:100%;" />
+            <br>
+            <RadzenRequiredValidator Component="Name" Text="Name is required" Popup="true" Style="position: absolute" />
+        </div>
+    </div>
+    <br>
+    <div class="row">
+        <div class="col-sm-2 ">
+            <RadzenLabel Text="*SQL Instance" />
+        </div>
+        <div class="col-sm-8">
+            <RadzenTextBox @bind-Value=@database.SQLInstance Name="SQLInstance" style="width:100%;" />
+            <br>
+            <RadzenRequiredValidator Component="SQLInstance" Text="SQL Instance is required" Popup="true" Style="position: absolute" />
+        </div>
+    </div>
+    <br>
+    <br>
+    <div class="row justify-content-center">
+        <div class="col-md-12 d-flex align-items-end justify-content-left" style="margin-top: 16px;">
+            <RadzenButton ButtonType="ButtonType.Submit" Icon="save" Text="Save" data-bs-toggle="collapse" href="#collapseDowntime" role="button" aria-expanded="false" aria-controls="collapseDowntime" />
+            <RadzenButton Icon="cancel" style="display: inline-block; margin-left: 10px;" Text="Cancel" Click="@Cancel" data-bs-toggle="collapse" href="#collapseDowntime" role="button" aria-expanded="false" aria-controls="collapseDowntime" />
+        </div>
+    </div>
+</RadzenTemplateForm>
+
+@code {
+
+    [Parameter]
+    public Database database { get; set; }
+    [Parameter]
+    public List<Database> databaseList { get; set; }
+    [Parameter]
+    public EventCallback<Database> SetDatabase__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetState__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<List<Database>> SetDatabaseList__parentEvent { get; set; }
+    [Parameter]
+    public string state { get; set; }
+    [Parameter]
+    public EventCallback<bool> ShowAlert__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertMessage__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertType__ParentEvent { get; set; }
+
+
+    List<string> statusList;
+    string user { get; set; }
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+
+        database.DateTime = DateTime.Now;
+        
+        var result = await ProtectedSessionStore.GetAsync<string>("user");
+        if (result.Success)
+        {
+            user = result.Value.ToString();
+
+        }
+    }
+
+    void Submit(Database database)
+    {
+        if (state == "create")
+        {
+            database.DateTime = DateTime.Now;
+            database.AuthorName = user;
+            database.ModifiedDate = DateTime.Now;
+            dbContext.Databases.Add(database);
+            dbContext.SaveChanges();
+            databaseList = dbContext.Databases.ToList();
+            ShowAlert__ParentEvent.InvokeAsync(true);
+            SetAlertMessage__ParentEvent.InvokeAsync("Record Succesfully created");
+            SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+
+        }
+        else if (state == "update")
+        {
+            database.ModifiedBy = user;
+            database.ModifiedDate = DateTime.Now;
+            Database prevDatabase = dbContext.Databases.First(a => a.ID == this.database.ID);
+            dbContext.Entry(prevDatabase).CurrentValues.SetValues(database);
+            dbContext.SaveChanges();
+            databaseList = dbContext.Databases.ToList();
+            ShowAlert__ParentEvent.InvokeAsync(true);
+            SetAlertMessage__ParentEvent.InvokeAsync("Record Succesfully updated");
+            SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+        }
+
+        SetDatabaseList__parentEvent.InvokeAsync(databaseList);
+        SetState__parentEvent.InvokeAsync("create");
+        SetDatabase__parentEvent.InvokeAsync(new Database());
+
+    }
+
+    void Cancel()
+    {
+        SetState__parentEvent.InvokeAsync("create");
+        SetDatabase__parentEvent.InvokeAsync(new Database());
+
+
+    }
+
+}

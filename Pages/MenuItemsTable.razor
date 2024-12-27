@@ -1,0 +1,166 @@
+@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navigationManager
+@inject DialogService DialogService
+@using System.Text.Json.Nodes
+
+
+
+<RadzenDataGrid 
+                AllowPaging="true"
+                PageSize="10"
+                Data="@items"
+                GridLines="Radzen.DataGridGridLines.Vertical"
+                TItem="MenuItem">
+
+    <Columns>
+        <RadzenDataGridColumn TItem="MenuItem" Property="MenuItem.Name" Title="Menu Item Name" Width="100%">
+            <EditTemplate Context="menuItem">
+                <RadzenTextBox @bind-Value=@menuItem.Name style="width:100%;" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="MenuItem" Title="Page Name" Width="100%">
+            <Template Context="menuItem">
+                @{
+                    string name = "";
+                    if (menuItem.Type == "singlePage")
+                    {
+                        if (dbContext.SinglePage.Any(p => p.ID == menuItem.PageID))
+                        {
+                            SinglePage page = dbContext.SinglePage.First(p => p.ID == menuItem.PageID);
+                            name = page.Name!;
+
+                           
+                        
+                        }
+             
+
+                    }
+                    else
+                    {
+                        if (dbContext.Project.Any(p => p.ID == menuItem.PageID))
+                        {
+                            Project project = dbContext.Project.First(p => p.ID == menuItem.PageID);
+                            name = project.Name!;
+                        
+                        }
+                    
+                    }
+                }
+                <p>@name</p>
+            </Template>
+        </RadzenDataGridColumn>
+
+
+        <RadzenDataGridColumn TItem="MenuItem" Context="MenuItem" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="156px">
+            <Template Context="menuItem">
+                <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => ShowDialog(menuItem))" @onclick:stopPropagation="true">
+                </RadzenButton>
+            </Template>
+            <Template Context="menuItem">
+                @{
+                    if (menuItem.Type == "singlePage")
+                    {
+
+
+                        if (dbContext.SinglePage.Any(p => p.ID == menuItem.PageID))
+                        {
+                            SinglePage page = dbContext.SinglePage.First(p => p.ID == menuItem.PageID);
+                            string name = page.Name;
+                            List<string> pageList = LoadCorePagesList();
+                            if (!pageList.Contains(name))
+                            {
+                                <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => ShowDialog(menuItem))">
+                                </RadzenButton>
+                            }
+                        }
+                    }
+                    else
+                    {
+                        <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => ShowDialog(menuItem))">
+                        </RadzenButton>
+
+                    }
+
+
+                }
+
+   
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+
+</RadzenDataGrid>
+
+@code {
+
+    [Parameter]
+    public List<MenuItem> items { get; set; }
+    [Parameter]
+    public EventCallback reloadMenuItems__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback reloadPages__parentEvent { get; set; }
+    bool showDeleteButton = true;
+    [Parameter]
+    public EventCallback<bool> ShowAlert__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertMessage__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertType__ParentEvent { get; set; }
+
+
+
+    List<string> LoadCorePagesList()
+    {
+        JsonReader reader = new JsonReader();
+        List<string> pageList = new List<string>();
+        JsonNode tag = reader.getTags("CorePages.json");
+        foreach (var pageName in tag["Pages"].AsArray())
+        {
+            
+            pageList.Add(pageName.ToString());
+        }
+        return pageList;
+
+    }
+
+    async Task DeleteRow(MenuItem item, DialogService ds)
+    {
+
+        if (items!.Contains(item))
+        {
+            dbContext.MenuItem.Remove(item);
+
+            items.Remove(item);
+            dbContext.SaveChanges();
+            reloadMenuItems__parentEvent.InvokeAsync();
+            reloadPages__parentEvent.InvokeAsync();
+
+        }
+        navigationManager.NavigateTo("/itdocs/menu/", forceLoad: true);
+        await ShowAlert__ParentEvent.InvokeAsync(true);
+        await SetAlertMessage__ParentEvent.InvokeAsync("Record Succesfully deleted");
+        await SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+    }
+
+    async Task ShowDialog(MenuItem item)
+    {
+
+        var result = await DialogService.OpenAsync("Confirmation", ds =>
+    @<RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <p>Are you sure you want to delete the record?</p>
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenButton Text="Ok" Click="() => DeleteRow(item,ds)" Style="width: 80px;" />
+                <RadzenButton Text="Cancel" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Light" />
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenStack>
+        );
+
+    }
+
+
+}

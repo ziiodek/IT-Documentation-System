@@ -1,0 +1,222 @@
+@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@using System.Text.Json
+@using System.Text.Json.Nodes
+@inject ApplicationDbContext dbContext
+@inject NavigationManager NavigationManager
+@implements Filter
+@inject DialogService DialogService
+@inject ProtectedSessionStorage ProtectedSessionStore
+
+<TableFilter nameFilter__parentEvent="@NameFilter"
+             authorNameFilter__parentEvent="@AuthorFilter"
+             dateFilter__parentEvent="@DateFilter"
+             resetFilter__parentEvent="@ResetFilter" />
+<br>
+<RadzenDataGrid ColumnWidth="300px"
+                GridLines="Radzen.DataGridGridLines.Vertical"
+                AllowColumnResize="true"
+                AllowPaging="true"
+                PageSize="20"
+                Data="@subdepartments"
+                TItem="Subdepartment">
+
+    <Columns>
+        <RadzenDataGridColumn TItem="Subdepartment" Property="Subdepartment.Name" Title="Subdepartmen Name" Width="100%">
+            <EditTemplate Context="subdepartment">
+                <RadzenTextBox @bind-Value=@subdepartment.Name style="width:100%;" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Subdepartment" Context="Subdepartment" Title="About Content" Width="100%">
+            <Template>
+                @{
+                    if (dbContext.SinglePage.Any(s => s.SubdepartmentID == Subdepartment.ID && s.Name == "About"))
+                    {
+                        SinglePage singlePage = dbContext.SinglePage.First(s => s.SubdepartmentID == Subdepartment.ID);
+                        string url = "/singlePages/view/" + singlePage.ID;
+                        <a href="@url"><p>About Content</p></a>
+                    }
+
+                }
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Subdepartment" Property="Subdepartment.AuthorName" Title="Author Name" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Subdepartment" Property="Subdepartment.DateTime" Title="Creation Date/Time" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Subdepartment" Property="Subdepartment.ModifiedBy" Title="Modified By" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Subdepartment" Property="Subdepartment.ModifiedDate" Title="Modified Date/Time" Width="100%">
+        </RadzenDataGridColumn>
+
+
+        <RadzenDataGridColumn TItem="Subdepartment" Context="subdepartment" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="156px">
+            <Template Context="subdepartment">
+                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditRow(subdepartment))" @onclick:stopPropagation="true">
+                </RadzenButton>
+                @{
+                    if (!coreSubdepartmentList.Any(n => n == subdepartment.Name))
+                    {
+                        <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => ShowDialog(subdepartment))" @onclick:stopPropagation="true">
+                        </RadzenButton>
+                    
+                    }
+
+                }
+
+
+
+                <!--<RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => ShowDialog(subdepartment))" @onclick:stopPropagation="true">
+                </RadzenButton>-->
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+
+</RadzenDataGrid>
+
+
+@code {
+
+    [Parameter]
+    public IList<Subdepartment> subdepartments { get; set; }
+    [Parameter]
+    public int departmentID { get; set; }
+    [Parameter]
+    public EventCallback<string> SetState__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<Subdepartment> SetSubdepartment__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<bool> ShowAlert__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertMessage__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertType__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback ReloadDepartments__ParentEvent { get; set; }
+    SubdepartmentHelper subdepartmentHelper;
+    List<string> coreSubdepartmentList;
+    JsonReader? reader;
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        subdepartmentHelper = new SubdepartmentHelper(dbContext);
+        getCoreDepartmentList();
+
+    }
+
+    void setState__event()
+    {
+        SetState__ParentEvent.InvokeAsync("create");
+    }
+
+
+
+    async Task EditRow(Subdepartment subdepartment)
+    {
+        await SetSubdepartment__ParentEvent.InvokeAsync(subdepartment);
+        await SetState__ParentEvent.InvokeAsync("update");
+    }
+
+
+    void getCoreDepartmentList()
+    {
+
+        coreSubdepartmentList = new List<string>();
+        reader = new JsonReader();
+        JsonNode coreSubdepList = reader.getTags("CoreDepartments.json");
+        JsonObject jsonObj = coreSubdepList.AsObject();
+        JsonNode itemTags = coreSubdepList["Departments"]!;
+        foreach (var subdepartment in coreSubdepList["Departments"]!.AsArray())
+        {
+            coreSubdepartmentList.Add(subdepartment.ToString());
+        }
+
+    }
+
+
+    async void DeleteRow(Subdepartment subdepartment, DialogService ds)
+    {
+
+
+        var result = await ProtectedSessionStore.GetAsync<string>("user");
+        subdepartmentHelper!.deleteSubdepartment__users(subdepartment.ID);
+        if (subdepartments!.Contains(subdepartment))
+        {
+
+            subdepartmentHelper.deleteSubdepartment__menuItems(subdepartment.ID);
+            subdepartmentHelper.deleteSubdepartment__singlePages(subdepartment.ID,result.Value);
+            subdepartmentHelper.deleteSubdepartment__projects(subdepartment.ID, result.Value);
+            dbContext.Subdepartment.Remove(subdepartment);
+            subdepartments.Remove(subdepartment);
+            dbContext.SaveChanges();
+
+        }
+        ds.Close(false);
+        ShowAlert__ParentEvent.InvokeAsync(true);
+        SetAlertMessage__ParentEvent.InvokeAsync("Record Succesfully deleted");
+        SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+        ReloadDepartments__ParentEvent.InvokeAsync();
+    }
+
+    async Task ShowDialog(Subdepartment subdepartment)
+    {
+
+        var result = await DialogService.OpenAsync("Confirmation", ds =>
+    @<RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <p>Are you sure you want to delete the record?</p>
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenButton Text="Ok" Click="() => DeleteRow(subdepartment,ds)" Style="width: 80px;" />
+                <RadzenButton Text="Cancel" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Light" />
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenStack>
+        );
+
+    }
+
+
+}
+
+
+
+
+@functions {
+    public void NameFilter(string name)
+    {
+        subdepartments = dbContext.Subdepartment.Where(d => d.Name!.Contains(name)).ToList();
+    }
+
+    public void AuthorFilter(string authorName)
+    {
+        subdepartments = dbContext.Subdepartment.Where(d => d.AuthorName!.Contains(authorName)).ToList();
+    }
+
+    public void DateFilter(DateTime? date)
+    {
+        List<Subdepartment> tmpSubdepartments = dbContext.Subdepartment.Where(s => s.DepartmentID == departmentID).ToList();
+        List<Subdepartment> dateSubdepartments = new List<Subdepartment>();
+        foreach (var subdepartment in tmpSubdepartments)
+        {
+            DateTime subdepartmentDate = subdepartment.DateTime;
+            DateTime d = date.HasValue ? date.Value : DateTime.Now;
+            if (subdepartmentDate.ToString().Contains(d.ToString("MM/d/yyyy")))
+            {
+
+                dateSubdepartments.Add(subdepartment);
+            }
+        }
+        subdepartments = dateSubdepartments;
+
+    }
+
+    public void ResetFilter()
+    {
+        subdepartments = dbContext.Subdepartment.Where(s => s.DepartmentID == departmentID).ToList();
+
+    }
+
+}

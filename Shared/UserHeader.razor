@@ -1,0 +1,18 @@
+<div class="user-header">
+    <div class="row">
+        <div class="col-sm-6">
+            <h5>@user!.Department Documentation</h5>
+        </div>
+        <div class="col-sm-6" style="text-align:right;">
+            @user.Name
+        </div>
+    </div>
+</div>
+
+
+@code {
+    //string initials = "UI";
+    [Parameter]
+    public User? user { get; set; }
+
+}

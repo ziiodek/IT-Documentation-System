@@ -1,0 +1,171 @@
+﻿@using ITDocumentation.Classes
+@using ITDocumentation.Data
+@inject ApplicationDbContext dbContext
+@inject NavigationManager _navigationManager
+@using System.Text.Json.Nodes
+@inject IJSRuntime JS
+
+
+<RadzenDataGrid ColumnWidth="300px"
+                GridLines="Radzen.DataGridGridLines.Vertical"
+                AllowColumnResize="true"
+                AllowPaging="false"
+                Data="@archiveDocuments"
+                TItem="Document"
+                AllowSorting="true"
+                AllowFiltering="true"
+                Style="height:800px; overflow:scroll;"
+                FilterMode="FilterMode.SimpleWithMenu"
+                FilterCaseSensitivity="@filterCaseSensitivity"
+                LogicalFilterOperator="@logicalFilterOperator">
+
+    <Columns>
+        <RadzenDataGridColumn TItem="Document" Property="@nameof(Document.Name)" Title="Name" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Document" Property="@nameof(Document.AuthorName)" Title="Author Name" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Document" Property="@nameof(Document.DateTime)" Title="Creation Date" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Document" Property="@nameof(Document.Status)" Title="Status" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Document" Property="@nameof(Document.ApprovedBy)" Title="Approved By" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Document" Property="@nameof(Document.ArchiveBy)" Title="Archive By" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Document" Context="document" TextAlign="TextAlign.Right" Width="156px">
+            <Template Context="document">
+             <RadzenButton Icon="file_download" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => DownloadRow(document))" @onclick:stopPropagation="true">
+             </RadzenButton>
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+
+<script suppress-error="BL9992">
+    window.triggerFileDownload = (fileName, url) => {
+        const anchorElement = document.createElement('a');
+        anchorElement.href = url;
+        anchorElement.download = fileName ?? '';
+        anchorElement.click();
+        anchorElement.remove();
+    }
+</script>
+
+
+@code {
+    [Parameter]
+    public List<SearchResult>? results { get; set; }
+    [Parameter]
+    public List<Document>? archiveDocuments { get; set; }
+    [Parameter]
+    public EventCallback ReloadArchiveTable__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<List<Document>> SetArchiveDocuments__ParentEvent { get; set; }
+    FilterCaseSensitivity filterCaseSensitivity = FilterCaseSensitivity.CaseInsensitive;
+    LogicalFilterOperator logicalFilterOperator = LogicalFilterOperator.Or;
+
+    TagsHelper tag = new TagsHelper();
+    JsonReader reader = new JsonReader();
+
+    void RestoreRow(Document document)
+    {
+
+        document.IsArchive = false;
+        Document prevDocument = dbContext.Document.First(d => d.ID == document.ID);
+        dbContext.Entry(prevDocument).CurrentValues.SetValues(document);
+        dbContext.SaveChanges();
+        ReloadArchiveTable__ParentEvent.InvokeAsync();
+
+    }
+
+    string getDocumentTags(int documentID)
+    {
+         Document document = dbContext.Document.First(d => d.ID == documentID);
+
+        string tagString = "";
+        JsonNode contentTags = reader.getTags("ContentTags.json");
+        JsonObject jsonObj = contentTags.AsObject();
+        JsonNode itemTags = contentTags[document.PageID.ToString()]!;
+
+        if (jsonObj.ContainsKey(document.PageID.ToString()))
+        {
+            if (itemTags["Type"].ToString() == document.Parent)
+            {
+
+                foreach (var tagName in contentTags[document.PageID.ToString()]["Tags"].AsArray())
+                {
+
+                    tagString += tagName.ToString() + ",";
+                }
+
+            }
+
+
+        }
+
+        return tagString;
+    }
+
+    async Task DownloadRow(Document document)
+    {
+       
+          
+            string directory = "/DocumentsUploaded/" + document.Parent + "/" + document.PageID;
+            var fileName = document.Name;
+            var fileURL = directory + "/" + fileName;
+            await JS.InvokeVoidAsync("triggerFileDownload", fileName, fileURL);
+    }
+
+
+}
+
+
+
+@functions {
+    public void NameFilter(string name)
+    {
+        List<Document> archiveDocuments = dbContext.Document.Where(d => d.IsArchive == true && d.Name!.Contains(name)).ToList();
+        SetArchiveDocuments__ParentEvent.InvokeAsync(archiveDocuments);
+
+
+    }
+
+    public void AuthorFilter(string authorName)
+    {
+        List<Document> archiveDocuments = dbContext.Document.Where(d => d.IsArchive == true && d.AuthorName!.Contains(authorName)).ToList();
+        SetArchiveDocuments__ParentEvent.InvokeAsync(archiveDocuments);
+    }
+
+    public void DateFilter(DateTime? date)
+    {
+        List<Document> tmpDocuments = dbContext.Document.Where(d => d.IsArchive == true).ToList();
+        List<Document> dateDocuments = new List<Document>();
+        foreach (var document in tmpDocuments)
+        {
+            DateTime documentDate = document.DateTime;
+            DateTime d = date.HasValue ? date.Value : DateTime.Now;
+            if (documentDate.ToString().Contains(d.ToString("M/d/yyyy")))
+            {
+                dateDocuments.Add(document);
+            }
+        }
+
+        SetArchiveDocuments__ParentEvent.InvokeAsync(dateDocuments);
+
+
+    }
+
+    public void ResetFilter()
+    {
+        List<Document> archiveDocuments = dbContext.Document.Where(d => d.IsArchive == true).ToList();
+        SetArchiveDocuments__ParentEvent.InvokeAsync(archiveDocuments);
+
+    }
+
+    void ApproveRow(Document document)
+    {
+
+    }
+
+}

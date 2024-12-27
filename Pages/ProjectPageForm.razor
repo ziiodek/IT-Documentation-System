@@ -1,0 +1,398 @@
+@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+@inject ProtectedSessionStorage ProtectedSessionStore
+@using System.Text.Json
+@using System.Text.Json.Nodes
+
+
+<RadzenTemplateForm Data="@projectPage" Submit="@((ProjectPage args) => { Submit(args); })">
+    <br>
+    <div class="row">
+        <div class="col-sm-2 ">
+            <RadzenLabel Text="*Page Name" />
+        </div>
+        <div class="col-sm-8">
+            <RadzenTextBox @bind-Value=@projectPage.Name Name="Name" Disabled=@disablePageName style="width:100%;" />
+            <br>
+            <RadzenRequiredValidator Component="Name" Text="Page Name is required" Popup="true" Style="position: absolute" />
+
+        </div>
+    </div>
+    <br>
+    <RadzenLabel Text="*Content" />
+    <TextEditor projectPage="@projectPage"
+                type="projectPage"
+                singlePage="null" />
+    <br>
+    @{
+        if (!disablePageName)
+        {
+            <UploadDocument pageID="@tmpPageID"
+                            parent="projectPage"
+                            ReloadDocumentsTable__parentEvent="@ReloadDocumentsTable"
+                            ReloadPendingDocumentsTable__parentEvent="@ReloadPendingDocumentsTable"
+                            pageState="@state"
+                            tmpDocuments="@tmpDocuments"
+                            tmpPendingDocuments="@tmpPendingDocuments"
+                            documents="@documents"
+                            SetUploadComponent__parentEvent="@SetUploadComponent"
+                            SetUploadCompleted__parentEvent="@SetUploadCompleted"
+                            SetPageId__parentEvent="@SetPageId"
+                            SetPageState__parentEvent="@SetPageState"
+                            documentsHandler="@documentsHandler"
+                            state="@documentState"
+                            documentID="@documentID" />
+            <br>
+            <br>
+            <DocumentsTable pageID="@tmpPageID"
+                            parent="@documentsParent"
+                            documents="@documents"
+                            tmpDocuments="@tmpDocuments"
+                            deleteDocumentDisabled="true"
+                            reloadDocumentsTable__parentEvent="@ReloadDocumentsTable"
+                            subdepartmentID="@subdepartmentID"
+                            SetDocumentID__ParentEvent="@SetDocumentID"
+                            SetDocumentState__ParentEvent="@SetDocumentState" />
+
+
+
+        }
+
+    }
+    <br>
+    <DisplayContentTags pageID="projectPage.ID"
+                        pageType="projectPage"
+                        tagList="@tagList"
+                        InitTagList__ParentEvent="@InitTagList" />
+    <br>
+    <br>
+    <br>
+    <div class="row justify-content-center">
+        <div class="col-md-12 d-flex align-items-end justify-content-left" style="margin-top: 16px;">
+
+            <RadzenButton ButtonType="ButtonType.Submit" Icon="save" Text="Save" />
+            <RadzenButton Icon="cancel" style="display: inline-block; margin-left: 10px;" Text="Cancel" Click="@Cancel" />
+        </div>
+    </div>
+</RadzenTemplateForm>
+
+
+
+@code {
+
+    [Parameter]
+    public EventCallback<string> SetState__ParentEvent { get; set; }
+    [Parameter]
+    public int projectID { get; set; }
+    [Parameter]
+    public ProjectPage projectPage { get; set; }
+    [Parameter]
+    public int subdepartmentID { get; set; }
+    [Parameter]
+    public string state { get; set; }
+    [Parameter]
+    public EventCallback<bool> ShowAlert__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertMessage__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertType__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<ProjectPage> SetProjectPage__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback ReloadPage__ParentEvent { get; set; }
+
+
+    bool disablePageName = false;
+    List<Document> documents;
+    List<PendingDocument> pendingDocuments;
+    List<Document> tmpDocuments;
+    List<PendingDocument> tmpPendingDocuments;
+    DocumentsHandler documentsHandler;
+    string parent = "project";
+    string documentsParent = "projectPage";
+    int tmpPageID;
+    string userName = "";
+    RadzenUpload uploadLocal;
+    List<string> documentTags;
+    JsonReader reader;
+    string documentState = "";
+    int documentID = 0;
+    SinglePagesHelper singlePagesHelper;
+    List<string> tagList = new List<string>();
+    List<string> tag;
+    string addTag1;
+    string addTag2;
+    string addTag3;
+    string addTag4;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        ResetTags();
+        //documentTags = new List<string>();
+        singlePagesHelper = new SinglePagesHelper(dbContext);
+        documentsHandler = new DocumentsHandler(dbContext);
+        tmpDocuments = new List<Document>();
+        tmpPendingDocuments = new List<PendingDocument>();
+        InitPageID();
+        InitTagList();
+        documents = documentsHandler.initDocuments(documents!, documentsParent, tmpPageID);
+        //pendingDocuments = documentsHandler.initPendingDocuments(pendingDocuments!, parent, tmpPageID);
+        var result = await ProtectedSessionStore.GetAsync<string>("user");
+        if (result.Success)
+        {
+            userName = result.Value.ToUpper();
+        }
+
+    }
+
+    void SetTagList(List<string> tag)
+    {
+        this.tag = tag;
+    }
+
+    void SetTag1(string tag)
+    {
+        addTag1 = tag;
+
+    }
+
+    void SetTag2(string tag)
+    {
+        addTag2 = tag;
+
+    }
+
+    void SetTag3(string tag)
+    {
+        addTag3 = tag;
+
+    }
+
+    void SetTag4(string tag)
+    {
+        addTag4 = tag;
+
+    }
+
+    void InitTagList()
+    {
+        tagList = new List<string>();
+        reader = new JsonReader();
+        JsonNode contentTags = reader.getTags("ContentTags.json");
+        JsonObject jsonObj = contentTags.AsObject();
+        JsonNode itemTags = contentTags[projectPage.ID.ToString()]!;
+
+        if (jsonObj.ContainsKey(projectPage.ID.ToString()))
+        {
+            if (itemTags["Type"].ToString() == "projectPage")
+            {
+
+                foreach (var tagName in contentTags[projectPage.ID.ToString()]["Tags"].AsArray())
+                {
+
+                    tagList.Add(tagName.ToString());
+                }
+
+            }
+
+
+        }
+
+    }
+
+
+    void SetDocumentState(string documentState)
+    {
+        this.documentState = documentState;
+    }
+
+    void SetDocumentID(int documentID)
+    {
+        this.documentID = documentID;
+
+    }
+
+    void SetDocumentTags(List<string> documentTags)
+    {
+        this.documentTags = documentTags;
+    }
+
+    void InitPageID()
+    {
+        if (state == "create")
+        {
+            tmpPageID = -1;
+        }
+        else if (state == "update")
+        {
+            tmpPageID = this.projectPage.ID;
+            //Console.WriteLine(tmpP);
+        }
+
+
+    }
+
+    void SetPageId(int pageId)
+    {
+        ProjectPage lastInserted = dbContext.ProjectPage.First(s => s.ID == pageId);
+        pageId = tmpPageID;
+        SetProjectPage__parentEvent.InvokeAsync(lastInserted);
+
+
+    }
+    void SetPageState(string state)
+    {
+        SetState__ParentEvent.InvokeAsync(state);
+    }
+
+
+    void Submit(ProjectPage projectPage)
+    {
+        //if (tag.Count > 0 && state == "create")
+        //{
+        this.projectPage = projectPage;
+        this.projectPage.ProjectID = projectID;
+
+        if (state == "create")
+        {
+            this.projectPage.ProjectID = projectID;
+            Create(projectPage);
+            ProjectPage lastInserted = dbContext.ProjectPage.OrderByDescending(p => p.ID).FirstOrDefault();
+            tmpPageID = lastInserted.ID;
+            ShowAlert__ParentEvent.InvokeAsync(true);
+            SetAlertMessage__ParentEvent.InvokeAsync("Record Succesfully created");
+            SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+            this.state = "update";
+            //SetState__ParentEvent.InvokeAsync("update");
+            //SetProjectPage__parentEvent.InvokeAsync(lastInserted);
+            
+        }
+        else
+        {
+            Update(projectPage);
+            ShowAlert__ParentEvent.InvokeAsync(true);
+            SetAlertMessage__ParentEvent.InvokeAsync("Record Succesfully updated");
+            SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+        }
+
+
+
+        uploadLocal.Upload();
+        StoreAdditionalTags();
+        singlePagesHelper.storeTags(tmpPageID,"projectPage", tag, "ContentTags.json");
+        ReloadPage__ParentEvent.InvokeAsync();
+        ResetTags();
+        InitTagList();
+
+        //}
+    }
+
+    void ResetTags()
+    {
+
+        tag = new List<string>();
+        //documentTags = new List<string>();
+        addTag1 = "";
+        addTag2 = "";
+        addTag3 = "";
+        addTag4 = "";
+
+    }
+    void StoreAdditionalTags()
+    {
+        if (addTag1 != "")
+        {
+            tag.Add(addTag1!);
+        }
+
+        if (addTag2 != "")
+        {
+            tag.Add(addTag2!);
+        }
+
+        if (addTag3 != "")
+        {
+            tag.Add(addTag3!);
+        }
+
+        if (addTag4 != "")
+        {
+            tag.Add(addTag4!);
+        }
+
+
+
+    }
+
+    void Create(ProjectPage projectPage)
+    {
+        this.projectPage = projectPage;
+        this.projectPage.AuthorName = userName;
+        this.projectPage.DateTime = DateTime.Now;
+        this.projectPage.Name = projectPage.Name;
+        this.projectPage.PageContent = projectPage.PageContent;
+        this.projectPage.ProjectID = projectID;
+        dbContext.ProjectPage.Add(projectPage);
+        dbContext.SaveChanges();
+        this.state = "update";
+        
+        /**ProjectPage lastInserted = dbContext.ProjectPage.OrderByDescending(p => p.ID!).FirstOrDefault()!;
+        string directoryURL = documentsHandler!.getDirectoryURL() + parent + "/" + lastInserted.ID + "/";
+        documentsHandler.moveDirectory(documentsHandler.getTmpDirectoryURL() + parent, directoryURL);
+        SetProjectPage__parentEvent.InvokeAsync(lastInserted);**/
+
+
+    }
+    void SetUploadComponent(RadzenUpload uploadLocal)
+    {
+        this.uploadLocal = uploadLocal;
+    }
+
+    void SetUploadCompleted(bool uploadCompleted)
+    {
+
+        SetState__ParentEvent.InvokeAsync("records");
+    }
+    void ReloadDocumentsTable()
+    {
+        documents = documentsHandler.initDocuments(documents!, documentsParent, tmpPageID);
+    }
+
+    void ReloadPendingDocumentsTable()
+    {
+        pendingDocuments = documentsHandler!.initPendingDocuments(pendingDocuments, documentsParent, tmpPageID);
+        if (pendingDocuments.Count > 0)
+        {
+            foreach (var pendingDocument in tmpPendingDocuments)
+            {
+                pendingDocuments.Add(pendingDocument);
+            }
+        }
+
+    }
+
+    void Update(ProjectPage projectPage)
+    {
+
+        projectPage.ModifiedBy = userName;
+        projectPage.ModifiedDate = DateTime.Now;
+        ProjectPage prevProjectPage = dbContext.ProjectPage.First(p => p.ID == projectPage.ID);
+        prevProjectPage.ID = projectPage.ID;
+        prevProjectPage.PageContent += projectPage.PageContent;
+        dbContext.Entry(prevProjectPage).CurrentValues.SetValues(projectPage);
+        dbContext.SaveChanges();
+
+
+    }
+
+    void Cancel()
+    {
+        projectPage = new ProjectPage();
+        documentsHandler!.deleteDocuments__files(tmpDocuments!, documentsHandler.getTmpDirectoryURL() + documentsParent + "/");
+        SetState__ParentEvent.InvokeAsync("records");
+
+    }
+}

@@ -1,0 +1,226 @@
+@using ITDocumentation.Data
+@using ITDocumentation.Classes
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+@inject NavigationManager NavigationManager
+@implements Filter
+@inject DialogService DialogService
+@inject ProtectedSessionStorage ProtectedSessionStore
+
+
+
+
+<TableFilter nameFilter__parentEvent="@NameFilter"
+             authorNameFilter__parentEvent="@AuthorFilter"
+             dateFilter__parentEvent="@DateFilter"
+             resetFilter__parentEvent="@ResetFilter" />
+<br>
+<RadzenDataGrid ColumnWidth="300px"
+                AllowColumnResize="true"
+                AllowPaging="true" 
+                PageSize="20"
+                GridLines="Radzen.DataGridGridLines.Vertical"
+                Data="@projectPages" 
+                TItem="ProjectPage">
+
+    <Columns>
+        <RadzenDataGridColumn TItem="ProjectPage" Property="ProjectPage.Name" Title="Page Name" Width="100%">
+            <EditTemplate Context="projectPage">
+                <RadzenTextBox @bind-Value=@projectPage.Name style="width:100%;" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ProjectPage" Property="ProjectPage.AuthorName" Title="Author" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ProjectPage" Property="ProjectPage.DateTime" Title="Creation Date/Time" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ProjectPage" Property="ProjectPage.ModifiedBy" Title="Modified By" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ProjectPage" Property="ProjectPage.ModifiedDate" Title="Modified Date/Time" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ProjectPage" Context="projectPage" Title="Tags" TextAlign="TextAlign.Right" Width="156px">
+            <Template Context="projectPage">
+                @{
+                    string tags = tagsHelper.getContentTags(projectPage.ID, "projectPage");
+                    <span>@tags</span>
+                }
+
+            </Template>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="ProjectPage" Context="projectPage" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="156px">
+            <Template Context="projectPage">
+                <RadzenButton Icon="visibility" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => ViewRow(projectPage))" @onclick:stopPropagation="true">
+                </RadzenButton>
+                @{
+                    if (state != "view")
+                    {
+                        <CRUDTable subdepartmentID="@subdepartmentID" action="edit">
+                            <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditRow(projectPage))" @onclick:stopPropagation="true">
+                            </RadzenButton>
+                        </CRUDTable>
+
+                        <CRUDTable subdepartmentID="@subdepartmentID" action="delete">
+                            <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => ShowDialog(projectPage))" @onclick:stopPropagation="true">
+                            </RadzenButton>
+                        </CRUDTable>
+                    
+                    }
+
+                }
+
+
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+
+</RadzenDataGrid>
+
+
+@code {
+
+    [Parameter]
+    public IList<ProjectPage> projectPages { get; set; }
+    [Parameter]
+    public int projectID { get; set; }
+    [Parameter]
+    public int subdepartmentID { get; set; }
+    [Parameter]
+    public string state { get; set; }
+
+    TagsHelper tagsHelper;
+
+    RadzenDataGrid<ProjectPage>? projectPagesGrid;
+
+    [Parameter]
+    public EventCallback<string> SetState__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<ProjectPage> SetProjectPage__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<bool> ShowAlert__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertMessage__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertType__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback ReloadProjectPages__ParentEvent { get; set; }
+
+
+    DocumentsHandler documentsHandler;
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        documentsHandler = new DocumentsHandler(dbContext);
+        tagsHelper = new TagsHelper();
+
+    }
+
+
+    void SetState__event()
+    {
+        SetState__parentEvent.InvokeAsync("create");
+    }
+
+    async Task EditRow(ProjectPage projectPage)
+    {
+        await SetProjectPage__parentEvent.InvokeAsync(projectPage);
+        await SetState__parentEvent.InvokeAsync("update");
+    }
+
+    async Task ViewRow(ProjectPage projectPage)
+    {
+        await SetProjectPage__parentEvent.InvokeAsync(projectPage);
+        await SetState__parentEvent.InvokeAsync("view");
+
+    }
+
+
+
+    async Task DeleteRow(ProjectPage projectPage, DialogService ds)
+    {
+
+        if (projectPages.Contains(projectPage))
+        {
+            dbContext.ProjectPage.Remove(projectPage);
+            var result = await ProtectedSessionStore.GetAsync<string>("user");
+            documentsHandler.deleteAllDocuments("projectPage", projectPage.ID,result.Value);
+            //documentsHandler.deleteProjectPage__documents(projectPage);
+            projectPages.Remove(projectPage);
+            dbContext.SaveChanges();
+            await projectPagesGrid!.Reload();
+        }
+        else
+        {
+            projectPagesGrid.CancelEditRow(projectPage);
+            await projectPagesGrid.Reload();
+        }
+
+        ds.Close(false);
+        await ShowAlert__ParentEvent.InvokeAsync(true);
+        await SetAlertMessage__ParentEvent.InvokeAsync("Record Succesfully deleted");
+        await SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+        await ReloadProjectPages__ParentEvent.InvokeAsync();
+    }
+
+    async Task ShowDialog(ProjectPage projectPage)
+    {
+
+        var result = await DialogService.OpenAsync("Confirmation", ds =>
+    @<RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <p>Are you sure you want to delete the record?</p>
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenButton Text="Ok" Click="() => DeleteRow(projectPage,ds)" Style="width: 80px;" />
+                <RadzenButton Text="Cancel" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Light" />
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenStack>
+        );
+
+    }
+
+
+}
+
+
+
+
+@functions {
+    public void NameFilter(string name)
+    {
+        projectPages = dbContext.ProjectPage.Where(p => p.Name.Contains(name) && p.ProjectID == projectID).ToList();
+    }
+
+    public void AuthorFilter(string authorName)
+    {
+        projectPages = dbContext.ProjectPage.Where(p => p.AuthorName!.Contains(authorName) && p.ProjectID == projectID).ToList();
+    }
+
+    public void DateFilter(DateTime? date)
+    {
+        List<ProjectPage> tmpProjectPages = dbContext.ProjectPage.Where(p => p.ProjectID == projectID).ToList();
+        List<ProjectPage> dateProjectPages = new List<ProjectPage>();
+
+        foreach (var projectPage in tmpProjectPages)
+        {
+            DateTime projectPageDate = projectPage.DateTime;
+            DateTime d = date.HasValue ? date.Value : DateTime.Now;
+            if (projectPageDate.ToString().Contains(d.ToString("M/d/yyyy")))
+            {
+                dateProjectPages.Add(projectPage);
+            }
+        }
+        projectPages = dateProjectPages;
+
+    }
+
+    public void ResetFilter()
+    {
+        projectPages = dbContext.ProjectPage.Where(p => p.ProjectID == projectID).ToList();
+
+    }
+
+}
+

@@ -1,0 +1,122 @@
+@page "/departments/{departmentID:int}"
+@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+@inject ProtectedSessionStorage ProtectedSessionStore
+@using System.Text.Json
+@using System.Text.Json.Nodes
+
+    <TitleContainer content="@title" />
+
+    <br>
+    <br>
+    <div>
+        @{
+            if (displayAlert == true)
+            {
+                <AlertMessage content="@alert"
+                              alertType="@alertType" />
+            }
+        }
+        <center>
+            <div class="row">
+                @{
+
+                    foreach (var card in subdepartmentsCards!)
+                    {
+
+                        <div class="col-sm-4" style="margin-top:20px; margin-bottom:20px;">
+                            @card
+                        </div>
+                    }
+
+                }
+            </div>
+        </center>
+    </div>
+@code {
+
+
+    [Parameter]
+    public int departmentID { get; set; }
+    IEnumerable<Subdepartment>? subdepartments;
+    List<RenderFragment>? subdepartmentsCards;
+
+
+    string alert = "";
+    bool displayAlert = false;
+    string alertType = "alert alert-primary";
+    string title = "Departments";
+    bool showSubdepartments = false;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        subdepartmentsCards = new List<RenderFragment>();
+        selectDepartment(departmentID);
+
+    }
+
+
+    void createSubdepartments__cards()
+    {
+        foreach (var subdepartment in subdepartments!)
+        {
+            if (subdepartment.Name != "Admin")
+            {
+                string link = "/itdocs/content/" + subdepartment.ID;
+                RenderFragment subdepartmentCard = @<LinkCard content="@subdepartment.Name" link="@link" />;
+                subdepartmentsCards!.Add(subdepartmentCard);
+            }
+
+        }
+
+    }
+
+
+
+
+
+    void addSubdepartment(Subdepartment subdepartment)
+    {
+        bool exists = dbContext.Subdepartment.Any(d => d.Name == subdepartment.Name);
+        if (!exists)
+        {
+            dbContext.Subdepartment.Add(subdepartment);
+            dbContext.SaveChanges();
+        }
+        else
+        {
+            
+            alert = "Error a Subdepartment with the same name already exists";
+
+        }
+
+    }
+    void loadSubdepartments(int departmentID)
+    {
+        subdepartments = dbContext.Subdepartment.Where(s => s.DepartmentID == departmentID);
+        if (subdepartments == null)
+        {
+            displayAlert = true;
+            alert = "No Departments Found";
+        }
+
+    }
+
+    void selectDepartment(int departmentID)
+    {
+        showSubdepartments = true;
+        loadSubdepartments(departmentID);
+        createSubdepartments__cards();
+    }
+
+    void setPageTitle(string title)
+    {
+        this.title = title;
+    }
+
+
+}

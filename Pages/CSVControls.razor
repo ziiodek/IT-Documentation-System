@@ -1,0 +1,233 @@
+﻿@using ITDocumentation.Data;
+@using System;
+@using System.Diagnostics;
+@using System.IO;
+@using IronPython.Hosting;
+@using Microsoft.Scripting.Hosting;
+@inject ApplicationDbContext dbContext;
+@inject IJSRuntime JS
+
+
+@{
+    if (showAlert == true)
+    {
+        <DocumentsAlert alertType="@alertType"
+                        content="@alertContent"
+                        HideAlert__ParentEvent="@HideAlert" />
+
+
+    }
+}
+
+<div>
+
+    @if(show == true){
+
+        <RadzenUpload Icon="upload_file" Accept=".csv,.xlsx" ChooseText="" ButtonStyle="ButtonStyle.Primary" Url="upload/worksheet" Complete=@(args => OnComplete(args)) Progress=@(args => OnProgress(args)) />
+    }
+    <RadzenButton Icon="file_download" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => DownloadFile())" @onclick:stopPropagation="true">
+    </RadzenButton>
+    <br>
+    @{
+        if(import == true)
+        {
+            <RadzenButton Text="Import Data" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => UploadData__Task())" @onclick:stopPropagation="true">
+            </RadzenButton>
+        }
+
+    }
+</div>
+
+<script suppress-error="BL9992">
+    window.triggerFileDownload = (fileName, url) => {
+        const anchorElement = document.createElement('a');
+        anchorElement.href = url;
+        anchorElement.download = fileName ?? '';
+        anchorElement.click();
+        anchorElement.remove();
+    }
+</script>
+
+
+@code {
+    [Parameter]
+    public EventCallback<string> StoreData_parentEvent { get; set; }
+    [Parameter]
+    public EventCallback GenerateSpreedSheet_parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<List<Downtime>> SetDowntimeList__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<List<SYM>> SetSYMList__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<List<Server>> SetServerList__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<List<Application>> SetAppplicationList__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<bool> SetShowProgressBar__parentEvent { get; set; }
+    [Parameter]
+    public string tableName{ get; set; }
+    [Parameter]
+    public bool show { get; set; }
+
+    bool import = false;
+    string fileName = null;
+    string alertContent = "";
+    string alertType = "alert alert-danger";
+    bool showAlert = false;
+
+
+    async Task DownloadFile()
+    {
+        var fileName = this.tableName + ".csv";
+        deleteFile(Directory.GetCurrentDirectory() + @"\wwwroot\Export\" + fileName);
+        string script = Directory.GetCurrentDirectory() + @"\wwwroot\python\Export.py";
+        char[] splitter = { '\r' };
+        Process p = new Process();
+        p.StartInfo.FileName = Directory.GetCurrentDirectory()+@"\wwwroot\python\venv\Scripts\python.exe";
+        p.StartInfo.RedirectStandardOutput = true;
+        p.StartInfo.UseShellExecute = false;
+        Console.WriteLine(this.tableName);
+        p.StartInfo.Arguments = string.Concat(script," ",this.tableName);
+        p.Start();
+        StreamReader sReader = p.StandardOutput;
+        string[] output = sReader.ReadToEnd().Split(splitter);
+
+        foreach (string s in output)
+            Console.WriteLine(s);
+
+        p.WaitForExit();
+        string downloadPath = "/itdocs/Export";
+
+        var fileURL = downloadPath + "/" + fileName;
+        JS.InvokeVoidAsync("triggerFileDownload", fileName, fileURL);
+
+
+    }
+
+
+
+    async void UploadData__Task()
+    {
+
+        await InvokeAsync(() => UploadData());
+
+    }
+
+
+    void UploadData()
+    {
+        SetShowProgressBar__parentEvent.InvokeAsync(true);
+        string script = Directory.GetCurrentDirectory() + @"\wwwroot\python\Import.py";
+
+        char[] splitter = { '\r' };
+        string fileType = Path.GetExtension(fileName);
+
+        if (fileType == ".csv")
+        {
+            fileType = "csv";
+
+        }
+        else
+        {
+            fileType = "excel";
+
+        }
+        Process p = new Process();
+        p.StartInfo.FileName = Directory.GetCurrentDirectory() + @"\wwwroot\python\venv\Scripts\python.exe";
+        p.StartInfo.RedirectStandardOutput = true;
+        p.StartInfo.UseShellExecute = false;
+        p.StartInfo.Arguments = string.Concat(script, " ", this.fileName.Replace(" ", ""), " ", fileType, " ", this.tableName);
+
+        p.Start();
+        StreamReader sReader = p.StandardOutput;
+        string[] output = sReader.ReadToEnd().Split(splitter);
+
+        foreach (string s in output){
+            if (s.Equals("Invalid template"))
+            {
+                showAlert = true;
+                alertType = "alert alert-danger";
+                alertContent = s+" data was not imported";
+            }
+            else if (s.Equals("Template is valid"))
+            {
+                showAlert = true;
+                alertType = "alert alert-primary";
+                alertContent = "Data was imported";
+            }
+
+               
+                Console.WriteLine(s);
+            
+        }
+
+        p.WaitForExit();
+        deleteFile(Directory.GetCurrentDirectory() + @"\wwwroot\Worksheets\" + this.fileName.Replace(" ", ""));
+        import = false;
+
+        if (this.tableName == "Downtime")
+        {
+            SetDowntimeList__parentEvent.InvokeAsync(dbContext.Downtime.ToList());
+        } else if (this.tableName == "SYMS")
+        {
+            SetSYMList__parentEvent.InvokeAsync(dbContext.SYMS.ToList());
+        }else if (this.tableName == "Server")
+        {
+            SetServerList__parentEvent.InvokeAsync(dbContext.Server.ToList());
+        }else if (this.tableName == "Application")
+        {
+            SetAppplicationList__parentEvent.InvokeAsync(dbContext.Application.ToList());    
+
+        }
+
+        SetShowProgressBar__parentEvent.InvokeAsync(false);
+        StateHasChanged();
+    }
+
+    void HideAlert()
+    {
+
+        this.showAlert = false;
+    }
+
+    void deleteFile(string fileName)
+    {
+
+        if (File.Exists(fileName))
+        {
+            try
+            {
+                System.IO.File.Delete(fileName);
+            }
+            catch
+            {
+
+            }
+        
+        }
+
+       
+    }
+
+    void OnProgress(UploadProgressArgs args)
+    {
+
+        foreach (var file in args.Files)
+        {
+
+
+            this.fileName = file.Name;
+        }
+        //UploadFile(fileName);
+    }
+
+    async Task OnComplete(UploadCompleteEventArgs args)
+    {
+        //Console.WriteLine(fileName);
+        //await UploadFile(fileName);
+        import = true;
+
+    }
+
+
+}

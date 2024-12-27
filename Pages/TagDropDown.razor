@@ -1,0 +1,33 @@
+@using ITDocumentation.Data
+@using System.Collections.Generic
+@using System.Text.Json.Nodes
+
+
+<RadzenDropDown @bind-Value=@tag Data=@tagList Style="width: 100%; max-width: 400px;" Chips=true Multiple="true" />
+
+
+@code {
+
+    [Parameter]
+    public List<string> tag { get; set; }
+    List<string> tagList;
+    JsonReader reader = new JsonReader();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        tagList = new List<string>();
+        JsonNode tag = reader.getTags("Tags.json");
+        foreach (var tagName in tag["Tags"].AsArray())
+        {
+            tagList.Add(tagName.ToString());
+        }
+
+    }
+
+
+
+
+
+
+}

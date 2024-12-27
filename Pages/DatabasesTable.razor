@@ -1,0 +1,100 @@
+@using ITDocumentation.Data
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+@inject NavigationManager NavigationManager
+@inject DialogService DialogService
+
+
+<div style="overflow-x:scroll;">
+ <CSVControls></CSVControls>
+    <br>
+    <RadzenDataGrid 
+                    AllowPaging="true" 
+                    AllowSorting="true"
+                    PageSize="20"
+                    Data="@databasesList"
+                    TItem="Database"
+                    GridLines="Radzen.DataGridGridLines.Vertical"
+                    AllowColumnResize="true" ColumnWidth="auto">
+
+        <Columns>
+            <RadzenDataGridColumn TItem="Database" Property="Database.Name" Title="Name">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Database" Property="Database.SQLInstance" Title="SQL Instance">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Database" Context="database" TextAlign="TextAlign.Right" Width="100px" Title="Actions">
+                <Template Context="database">
+                    <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditRow(database))" @onclick:stopPropagation="true" data-bs-toggle="collapse" href="#collapseDowntime" role="button" aria-expanded="false" aria-controls="collapseDowntime">
+                    </RadzenButton>
+                    <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => ShowDialog(database))" @onclick:stopPropagation="true">
+                    </RadzenButton>
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+
+    </RadzenDataGrid>
+</div>
+
+@code {
+    [Parameter]
+    public List<Database> databasesList { get; set; }
+    RadzenDataGrid<Database> databasesGrid;
+    [Parameter]
+    public EventCallback<string> SetState__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<Database> SetDatabases__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<bool> ShowAlert__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertMessage__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertType__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<List<Database>> SetDatabasesList__parentEvent { get; set; }
+
+
+    async Task EditRow(Database database)
+    {
+        await SetDatabases__parentEvent.InvokeAsync(database);
+        await SetState__parentEvent.InvokeAsync("update");
+    }
+
+    async Task DeleteRow(Database database, DialogService ds)
+    {
+
+        if (this.databasesList!.Contains(database))
+        {
+            dbContext.Databases.Remove(database);
+            dbContext.SaveChanges();
+            databasesList = dbContext.Databases.ToList();
+           
+            SetDatabasesList__parentEvent.InvokeAsync(databasesList);
+            ShowAlert__ParentEvent.InvokeAsync(true);
+            SetAlertMessage__ParentEvent.InvokeAsync("Record Succesfully deleted");
+            SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+
+        }
+
+        ds.Close(false);
+    }
+
+    async Task ShowDialog(Database database)
+    {
+
+        var result = await DialogService.OpenAsync("Confirmation", ds =>
+    @<RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <p>Are you sure you want to delete the record?</p>
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenButton Text="Ok" Click="() => DeleteRow(database,ds)" Style="width: 80px;" />
+                <RadzenButton Text="Cancel" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Light" />
+            </RadzenStack>
+        </RadzenStack>
+        </RadzenStack>
+    );
+
+    }
+
+
+
+}

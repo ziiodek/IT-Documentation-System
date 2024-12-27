@@ -1,0 +1,81 @@
+﻿@page "/"
+@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext dbContext
+@using Microsoft.AspNetCore.Components
+@inject ProtectedSessionStorage ProtectedSessionStore
+@inject NavigationManager _navigationManager
+
+
+<PageTitle>Index</PageTitle>
+
+    <br>
+
+    <h3>
+        @departmentName
+    </h3>
+    <br>
+    <div style="padding:2%;">
+        <p>
+
+            @{
+                SinglePage coreValues = dbContext.SinglePage.First(s => s.Name == "Core Values");
+                <span> @((MarkupString)coreValues.PageContent!)</span>
+
+
+            }
+
+        </p>
+    </div>
+
+
+
+
+
+@code {
+
+    RenderFragment? departmentCard;
+    string? departmentName;
+    protected override async Task OnInitializedAsync()
+    {
+
+        var result = await ProtectedSessionStore.GetAsync<string>("department");
+        if (result.Success)
+        {
+            departmentName = result.Value.ToUpper();
+            if (dbContext.Department.Any(d => d.Name == departmentName))
+            {
+                Department department = dbContext.Department.First(p => p.Name == departmentName);
+                string url = "/itdocs/departments/" + department.ID;
+                departmentCard = @<LinkCard style="width:60%; height:100px;" content="Departments" link="@url" />;
+
+                if (!dbContext.Subdepartment.Any(d => d.Name == "Admin"))
+                {
+                    Subdepartment admin = new Subdepartment();
+                    admin.Name = "Admin";
+                    admin.AuthorName = "System";
+                    admin.DateTime = DateTime.Now;
+                    admin.DepartmentID = department.ID;
+                    dbContext.Subdepartment.Add(admin);
+                    dbContext.SaveChanges();
+                    admin = dbContext.Subdepartment.First(s => s.Name == "Admin");
+
+                    if (!dbContext.SinglePage.Any(s => s.Name == "About"))
+                    {
+                        SinglePage about = new SinglePage();
+                        about.Name = "About";
+                        about.AuthorName = "System";
+                        about.SubdepartmentID = admin.ID;
+                        about.DateTime = DateTime.Now;
+                        about.PageContent = "Write about your department in this area!";
+
+                    }
+                }
+            }
+        }
+    }
+
+
+
+
+}

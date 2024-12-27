@@ -1,0 +1,169 @@
+@inject IJSRuntime JS
+@inject DialogService DialogService
+@using System.Text.RegularExpressions
+
+
+<RadzenHtmlEditor @bind-Value=@value Name="Content" style="height: 500px; min-width:800px; max-width:1500px; overflow-y:scroll;" Change=@OnChange Paste=@OnPaste>
+    <RadzenHtmlEditorUndo />
+    <RadzenHtmlEditorRedo />
+    <RadzenHtmlEditorSeparator />
+    <RadzenHtmlEditorBold />
+    <RadzenHtmlEditorItalic />
+    <RadzenHtmlEditorUnderline />
+    <RadzenHtmlEditorStrikeThrough />
+    <RadzenHtmlEditorSeparator />
+    <RadzenHtmlEditorColor />
+    <RadzenHtmlEditorBackground />
+    <RadzenHtmlEditorFormatBlock />
+    <RadzenHtmlEditorAlignLeft />
+    <RadzenHtmlEditorAlignCenter />
+    <RadzenHtmlEditorAlignRight />
+    <RadzenHtmlEditorJustify />
+    <RadzenHtmlEditorIndent />
+    <RadzenHtmlEditorOutdent />
+    <RadzenHtmlEditorUnorderedList />
+    <RadzenHtmlEditorOrderedList />
+    <RadzenHtmlEditorRemoveFormat />
+    <RadzenHtmlEditorLink />
+    <RadzenHtmlEditorUnlink />
+    <RadzenHtmlEditorSubscript />
+    <RadzenHtmlEditorSuperscript />
+    <RadzenHtmlEditorFontName />
+    <RadzenHtmlEditorFontSize />
+    <RadzenHtmlEditorSource />
+   <!--
+        <RadzenButton Variant="Variant.Flat" Text='Insert Table' Icon="table_chart" Style="text-align:center;" ButtonStyle="ButtonStyle.Light" Click=@CreateTableDialog />
+
+    -->
+</RadzenHtmlEditor>
+<RadzenRequiredValidator Component="Content" Text="Page Content should not be empty" Popup="true" Style="position: absolute" />
+
+@code
+{
+    [Parameter]
+    public SinglePage singlePage { get; set; }
+    [Parameter]
+    public ProjectPage projectPage { get; set; }
+    [Parameter]
+    public string type { get; set; }
+    public string value { get; set; }
+    string currentContent = "";
+    string uploadImageUrl;
+    string parent = "";
+    int pageID;
+
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (type == "singlePage")
+        {
+            value = singlePage.PageContent;
+        }
+        else if (type == "projectPage")
+        {
+            value = projectPage.PageContent;
+        }
+
+        if (type == "projectPage")
+        {
+            parent = "project";
+            pageID = projectPage.ID;
+        }
+        else
+        {
+            parent = type!;
+            pageID = singlePage.ID;
+        }
+
+        uploadImageUrl = "upload/image/" + parent + "/" + pageID;
+
+
+    }
+
+    void updateValue(string value)
+    {
+        this.value += value;
+    }
+    void OnPaste(HtmlEditorPasteEventArgs args)
+    {
+        /*string s = args.Html.ToString();
+        int start;
+        int end;
+
+        int total;
+
+        total = Regex.Matches(s,"<style>").Count;
+
+        for (int i=0;i<total;i++)
+        {
+            if (s.Contains("<style>"))
+            {
+                start = s.LastIndexOf("<style>") + "<style>".Length;
+                end = s.IndexOf("</style>", start);
+                s = s.Remove(start, end - start);
+            }
+        }
+
+        total = Regex.Matches(s, "if gte mso").Count;
+        for (int i = 0; i < total; i++)
+        {
+
+            if(s.Contains("<!--[if gte mso"))
+            {
+                start = s.LastIndexOf("<!--[if gte mso") + "<!--[if gte mso".Length;
+                end = s.IndexOf("[endif]-->", start);
+                s = s.Remove(start, end - start);
+            }
+
+        }
+
+
+        s = Regex.Replace(s,"<.*?>", "");
+        s = Regex.Replace(s, @"<[^>]*>", "");
+
+        this.value += s;*/
+
+    }
+
+    void OnChange(string html)
+    {
+        
+        if (type == "singlePage")
+        {
+            singlePage.PageContent = @html;
+        }
+        else if (type == "projectPage")
+        {
+            projectPage.PageContent = @html;
+
+        }
+
+
+    }
+
+
+
+    async Task OnProgress(UploadProgressArgs args, string name)
+    {
+        foreach (var file in args.Files)
+        {
+
+            string imgPath = "ImagesUploaded/" + parent + "/" + pageID + "/ver-" + DateTime.Today.ToString("yyyy-MM-dd") + "-" + file.Name;
+            value = value + "<br><img src='" + imgPath + "' style='width:400px;'/><br>";
+        }
+
+    }
+
+
+    async Task CreateTableDialog()
+    {
+        var result = await DialogService.OpenAsync("Inser Table", ds =>
+        @<CreateTableForm updateValue__parentEvent="@updateValue"
+                 ds="@ds" />);
+
+    }
+
+}

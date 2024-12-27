@@ -1,0 +1,133 @@
+@page "/downtime/"
+@using ITDocumentation.Data
+@using System.Collections.Generic
+@using System.Threading;
+@inject ApplicationDbContext dbContext
+@inject NavigationManager NavigationManager
+
+    <TitleContainer content="@title" />
+    <br>
+
+    @{
+        if (showAlert == true)
+        {
+            <AlertMessage content="@alertMessage"
+                          alertType="@alertType" />
+
+
+        }
+
+
+    }
+
+    <DowntimeTable downtimeList="@downtimeList"
+                   SetState__parentEvent="@SetState"
+                   SetDowntime__parentEvent="@SetDowntime"
+                   SetAlertMessage__ParentEvent="@SetAlertMessage"
+                   SetAlertType__ParentEvent="@SetAlertType"
+                   ShowAlert__ParentEvent="@ShowAlert" 
+                   SetDowntimeList__parentEvent="@SetDowntimeList" />
+    <br>
+    <button class="btn btn-primary" data-bs-toggle="collapse" href="#collapseDowntime" role="button" aria-expanded="false" aria-controls="collapseDowntime">ADD ENTRY</button>
+    <br>
+    <br>
+    <div class="collapse multi-collapse gray-container" id="collapseDowntime">
+        <h5>
+            Add new record
+        </h5>
+        <br>
+        <DowntimeForm downtime="@downtime"
+                      state="@state"
+                      downtimeList="@downtimeList"
+                      SetState__parentEvent="@SetState"
+                      SetDowntime__parentEvent="@SetDowntime"
+                      SetDowntimeList__parentEvent="@SetDowntimeList"
+                      SetAlertMessage__ParentEvent="@SetAlertMessage"
+                      SetAlertType__ParentEvent="@SetAlertType"
+                      ShowAlert__ParentEvent="@ShowAlert" />
+
+    </div>
+
+@code {
+
+        string title = "Downtime";
+        string state = "create";
+        Downtime downtime;
+        List<Downtime> downtimeList;
+        bool showAlert = false;
+        string alertMessage = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut in viverra lorem, et dapibus nibh. Vestibulum commodo interdum ex eget aliquam. Duis viverra massa at sapien varius, non ornare ligula porttitor.";
+        string alertType = "alert alert-primary";
+        private int currentTime;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        downtime = new Downtime();
+        downtimeList = dbContext.Downtime.ToList();
+
+    }
+
+    void SetState(string state)
+    {
+        this.state = state;
+    }
+
+    void SetDowntime(Downtime downtime)
+    {
+        this.downtime = downtime;
+    }
+
+    public void SetDowntimeList(List<Downtime> downtimeList)
+    {
+        this.downtimeList = downtimeList;
+
+    }
+
+
+    async Task ShowAlert(bool showAlert)
+
+    {
+        this.showAlert = showAlert;
+        var timer = new Timer(new TimerCallback(_ =>
+     {
+        currentTime++;
+        InvokeAsync(() =>
+        {
+             StateHasChanged();
+         this.showAlert = false;
+        });
+        }), null, 5000, 5000);
+
+        
+
+    }
+
+    async Task HideAlert()
+    {
+
+        await Task.Delay(2);
+        this.showAlert = false;
+
+
+    }
+
+
+
+    void SetAlertMessage(string alertMessage)
+    {
+        this.alertMessage = alertMessage;
+
+    }
+
+    void SetAlertType(string alertType)
+    {
+        this.alertType = alertType;
+
+
+    }
+
+}
+
+
+
+

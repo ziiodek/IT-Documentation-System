@@ -1,0 +1,189 @@
+@using ITDocumentation.Data
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+@inject NavigationManager NavigationManager
+@inject DialogService DialogService
+@inject IJSRuntime JS
+
+
+    <RadzenButton Text="Download Downtime Template" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@ViewTemplate" @onclick:stopPropagation="true">
+    </RadzenButton>
+    <br>
+    <br>
+    <CSVControls
+        tableName="Downtime"
+        SetDowntimeList__parentEvent="@SetDowntimeList__parentEvent"
+        show = "@show"
+        />
+    <br>
+    <RadzenDataGrid 
+                    AllowPaging="false" 
+                    AllowSorting="true"
+                    AllowFiltering="true"
+                    FilterMode="FilterMode.SimpleWithMenu"
+                    FilterCaseSensitivity="@filterCaseSensitivity"
+                    LogicalFilterOperator="@logicalFilterOperator"
+                    Data="@downtimeList.AsEnumerable()" 
+                    TItem="Downtime"
+                    Style="height:800px; overflow:scroll;"
+                    GridLines="Radzen.DataGridGridLines.Vertical"
+                    AllowColumnResize="true" ColumnWidth="250px"
+                    CellRender="@CellRender">
+
+        <Columns>
+            <RadzenDataGridColumn TItem="Downtime" Property="@nameof(Downtime.Date)" Title="Creation Date/Time">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Downtime" Property="@nameof(Downtime.AuthorName)" Title="Author">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Downtime" Property="@nameof(Downtime.ModifiedBy)" Title="Modified By">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Downtime" Property="@nameof(Downtime.ModifiedDate)" Title="Modified Date/Time">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Downtime" Property="@nameof(Downtime.SystemImpacted)" Title="System Impacted">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Downtime" Property="@nameof(Downtime.Requestor)" Title="Requestor">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Downtime" Property="@nameof(Downtime.Status)" Title="Status">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Downtime" Property="@nameof(Downtime.Ticket)" Title="Ticket No.">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Downtime" Property="@nameof(Downtime.StartTime)" Title="Start Date">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Downtime" Property="@nameof(Downtime.EndTime)" Title="End Date">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Downtime" Property="@nameof(Downtime.TimeLapsed)" Title="Time Lapsed (D:HH:MM)">
+            
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Downtime" Property="@nameof(Downtime.TimeLapsedMinutes)" Title="Time Lapsed (MM)">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Downtime" Property="@nameof(Downtime.Impact)" Title="Impact">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Downtime" Property="@nameof(Downtime.Cause)" Title="Cause">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Downtime" Property="@nameof(Downtime.CorrectiveAction)" Title="Corrective Action">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Downtime" Property="@nameof(Downtime.Notes)" Title="Notes">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Downtime" Context="downtime" TextAlign="TextAlign.Right" Width="100px">
+                <Template Context="downtime">
+                    <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditRow(downtime))" @onclick:stopPropagation="true" data-bs-toggle="collapse" href="#collapseDowntime" role="button" aria-expanded="false" aria-controls="collapseDowntime">
+                    </RadzenButton>
+
+                    <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => ShowDialog(downtime))" @onclick:stopPropagation="true">
+                    </RadzenButton>
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+
+    </RadzenDataGrid>
+<script suppress-error="BL9992">
+    window.triggerFileDownload = (fileName, url) => {
+        const anchorElement = document.createElement('a');
+        anchorElement.href = url;
+        anchorElement.download = fileName ?? '';
+        anchorElement.click();
+        anchorElement.remove();
+    }
+</script>
+
+
+@code {
+    [Parameter]
+    public List<Downtime> downtimeList { get; set; }
+    RadzenDataGrid<Downtime> downtimeGrid;
+    [Parameter]
+    public EventCallback<string> SetState__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<Downtime> SetDowntime__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<bool> ShowAlert__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertMessage__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertType__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<List<Downtime>> SetDowntimeList__parentEvent { get; set; }
+    bool show = true;
+
+    FilterCaseSensitivity filterCaseSensitivity = FilterCaseSensitivity.CaseInsensitive;
+    LogicalFilterOperator logicalFilterOperator = LogicalFilterOperator.Or;
+
+    TimeSpan CalculateTimeLapseHours(DateTime startTime, DateTime endTime)
+    {
+        TimeSpan timepassed = endTime.Subtract(startTime);
+        return timepassed;
+    }
+
+    async Task ViewTemplate()
+    {
+        string directory = "/itdocs/Templates";
+        var fileName = "Downtime.xlsx";
+        var fileURL = directory + "/" + fileName;
+        await JS.InvokeVoidAsync("triggerFileDownload", fileName, fileURL);
+
+    }
+
+    int CalculateTimeLapseMinutes(DateTime startTime, DateTime endTime)
+    {
+        TimeSpan timepassed = endTime.Subtract(startTime);
+        return (int)timepassed.TotalMinutes;
+
+
+    }
+
+    void CellRender(DataGridCellRenderEventArgs<Downtime> args)
+    {
+        if (args.Data.Status == "Down")
+        {
+            args.Attributes.Add("style", $"background-color:var(--rz-danger-lighter);");
+        }
+        else if (args.Data.Status == "Degraded")
+        {
+            args.Attributes.Add("style", $"background-color:var(--rz-warning-lighter);");
+        }
+    }
+
+    async Task EditRow(Downtime downtime)
+    {
+        await SetDowntime__parentEvent.InvokeAsync(downtime);
+        await SetState__parentEvent.InvokeAsync("update");
+    }
+
+    async Task DeleteRow(Downtime downtime, DialogService ds)
+    {
+
+        if (this.downtimeList!.Contains(downtime))
+        {
+            dbContext.Downtime.Remove(downtime);
+            dbContext.SaveChanges();
+            downtimeList = dbContext.Downtime.ToList();
+           
+            SetDowntimeList__parentEvent.InvokeAsync(downtimeList);
+            ShowAlert__ParentEvent.InvokeAsync(true);
+            SetAlertMessage__ParentEvent.InvokeAsync("Record Succesfully deleted");
+            SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+
+        }
+
+        ds.Close(false);
+    }
+
+    async Task ShowDialog(Downtime downtime)
+    {
+
+        var result = await DialogService.OpenAsync("Confirmation", ds =>
+    @<RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <p>Are you sure you want to delete the record?</p>
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenButton Text="Ok" Click="() => DeleteRow(downtime,ds)" Style="width: 80px;" />
+                <RadzenButton Text="Cancel" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Light" />
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenStack>
+        );
+
+    }
+
+
+}

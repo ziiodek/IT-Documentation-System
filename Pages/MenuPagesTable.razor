@@ -1,0 +1,51 @@
+@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+
+<RadzenDataGrid AllowPaging="true"
+                PageSize="5"
+                GridLines="Radzen.DataGridGridLines.Vertical"
+                Data="@pages"
+                TItem="SinglePage">
+
+    <Columns>
+        <RadzenDataGridColumn TItem="SinglePage" Property="SinglePage.Name" Title="Page Name" Width="100%">
+            <EditTemplate Context="singlePage">
+                <RadzenTextBox @bind-Value=@singlePage.Name style="width:100%;" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="SinglePage" Context="singlePage" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="156px">
+            <Template Context="singlePage">
+                <RadzenButton Icon="add" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => AddMenuItem(singlePage))" @onclick:stopPropagation="true">
+                </RadzenButton>
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+
+</RadzenDataGrid>
+
+
+
+@code {
+
+    [Parameter]
+    public List<SinglePage> pages { get; set; }
+    [Parameter]
+    public EventCallback<int> setPageID__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<bool> showForm__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> setPageType__parentEvent { get; set; }
+
+
+    void AddMenuItem(SinglePage page)
+    {
+        setPageID__parentEvent.InvokeAsync(page.ID);
+        setPageType__parentEvent.InvokeAsync("singlePage");
+        showForm__parentEvent.InvokeAsync(true);
+
+    }
+
+}
+

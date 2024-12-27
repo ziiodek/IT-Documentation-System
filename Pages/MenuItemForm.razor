@@ -1,0 +1,87 @@
+@using ITDocumentation.Data
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navigationManager
+@inject ProtectedSessionStorage ProtectedSessionStore
+
+<RadzenTemplateForm Data="@item" Submit="@((MenuItem args) => { Submit(args); })">
+    <div class="row">
+        <div class="col-sm-2 ">
+            <RadzenLabel Text="Menu Item Name" />
+        </div>
+        <div class="col-sm-8">
+            <RadzenTextBox @bind-Value=@item.Name Name="Name" style="width:100%;" />
+            <br>
+            <RadzenRequiredValidator Component="Name" Text="Menu Item Name is required" Popup="true" Style="position: absolute" />
+        </div>
+    </div>
+    <br>
+    <br>
+    <div class="row justify-content-center">
+        <div class="col-md-12 d-flex align-items-end justify-content-left" style="margin-top: 16px;">
+            <RadzenButton ButtonType="ButtonType.Submit" Icon="save" Text="Save" />
+            <RadzenButton Icon="cancel" style="display: inline-block; margin-left: 10px;" Text="Cancel" Click="@Cancel" />
+        </div>
+    </div>
+</RadzenTemplateForm>
+
+
+@code {
+    MenuItem item = new MenuItem();
+    [Parameter]
+    public EventCallback<bool> showForm__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback reloadMenuItems__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback reloadPages__parentEvent { get; set; }
+    [Parameter]
+    public int pageID { get; set; }
+    [Parameter]
+    public string type { get;set; }
+
+    [CascadingParameter]
+    public NavMenu Menu { get; set; }
+    string userName = "";
+    [Parameter]
+    public EventCallback<bool> ShowAlert__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertMessage__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertType__ParentEvent { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await ProtectedSessionStore.GetAsync<string>("user");
+        if (result.Success)
+        {
+            userName = result.Value!.ToUpper();
+        }
+    }
+
+    void Submit(MenuItem item)
+    {
+
+        Console.WriteLine(pageID);
+        Console.WriteLine(type);
+        item.PageID = pageID;
+        item.Type = type;
+        item.AuthorName = userName;
+        item.DateTime = DateTime.Now;
+        dbContext.MenuItem.Add(item);
+        dbContext.SaveChanges();
+        showForm__parentEvent.InvokeAsync(false);
+        reloadMenuItems__parentEvent.InvokeAsync();
+        reloadPages__parentEvent.InvokeAsync();
+        navigationManager.NavigateTo("/itdocs/menu/", forceLoad: true);
+        ShowAlert__ParentEvent.InvokeAsync(true);
+        SetAlertMessage__ParentEvent.InvokeAsync("Item Succesfully added to Main Menu");
+        SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+
+    }
+
+    protected async Task Cancel()
+    {
+        item = new MenuItem();
+        await showForm__parentEvent.InvokeAsync(false);
+    }
+}

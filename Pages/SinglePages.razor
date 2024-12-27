@@ -1,0 +1,256 @@
+@page "/singlePages/{subdepartmentID:int}"
+@page "/singlePages/{action}/{pageViewID:int}"
+
+@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@using System.Threading;
+@inject ApplicationDbContext dbContext
+@inject IJSRuntime JS
+
+    <TitleContainer content="@title" 
+        showTooltip="false"
+        toolTipMessage="@toolTipMessage"
+        />
+    <br>
+<RadzenButton Text="Download Manual Procedures Template" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@ViewTemplate" @onclick:stopPropagation="true">
+      </RadzenButton>
+    <br>
+    <br>
+    @{
+        if (showAlert == true)
+        {
+            <AlertMessage content="@alertMessage"
+                          alertType="@alertType"
+                          HideAlert__ParentEvent="@HideAlert" />
+
+
+        }
+
+    }
+
+    @{
+
+        if (action == "view")
+        {
+            <PageView pageType="singlePage"
+                      pageID="@pageViewID"
+                      subdepartmentID="@subdepartmentID"
+                      setState__parentEvent="@SetState__event"
+                      setSinglePage__parentEvent="@SetSinglePage" />
+        }
+
+
+        if (state == "records" && action != "view")
+        {
+
+            <CRUDTable subdepartmentID="@subdepartmentID" action="add">
+                <RadzenButton Icon="add_circle_outline" Class="mt-2 mb-4" Text="Create Page" Click="@(args => CreatePage())" />
+            </CRUDTable>
+            <SinglePagesTable pages="@pages"
+                              SetState__parentEvent="@SetState__event"
+                              subdepartmentID="@subdepartmentID"
+                              SetSinglePage__parentEvent="@SetSinglePage"
+                              SetAlertMessage__ParentEvent="@SetAlertMessage"
+                              SetAlertType__ParentEvent="@SetAlertType"
+                              ShowAlert__ParentEvent="@ShowAlert"
+                              ReloadPages__parentEvent="@ReloadPages" />
+        }
+
+        if (state == "create")
+        {
+            <SinglePageForm subdepartmentID="@subdepartmentID"
+                            SetState__ParentEvent="@SetState__event"
+                            singlePage="@singlePage"
+                            state="create"
+                            SetAlertMessage__ParentEvent="@SetAlertMessage"
+                            SetAlertType__ParentEvent="@SetAlertType"
+                            ShowAlert__ParentEvent="@ShowAlert"
+                            ReloadPage__ParentEvent="@ReloadPage"
+                            SetSinglePage__parentEvent="@SetSinglePage" />
+        }
+
+        if (state == "update")
+        {
+
+            <SinglePageForm subdepartmentID="@subdepartmentID"
+                            SetState__ParentEvent="@SetState__event"
+                            singlePage="@singlePage"
+                            state="update"
+                            SetAlertMessage__ParentEvent="@SetAlertMessage"
+                            SetAlertType__ParentEvent="@SetAlertType"
+                            ShowAlert__ParentEvent="@ShowAlert"
+                            ReloadPage__ParentEvent="@ReloadPage"
+                            SetSinglePage__parentEvent="@SetSinglePage" />
+        }
+
+        if (state == "view")
+        {
+            if (pageID != -1)
+            {
+                <PageView pageType="singlePage"
+                          pageID="@singlePage!.ID"
+                          subdepartmentID="@subdepartmentID"
+                          setState__parentEvent="@SetState__event"
+                          setSinglePage__parentEvent="@SetSinglePage" />
+            }
+
+        }
+
+
+    }
+
+<script suppress-error="BL9992">
+    window.triggerFileDownload = (fileName, url) => {
+    const anchorElement = document.createElement('a');
+        anchorElement.href = url;
+        anchorElement.download = fileName ?? '';
+        anchorElement.click();
+        anchorElement.remove();
+    }
+</script>
+
+
+
+@code
+{
+
+
+    [Parameter]
+    public string action { get; set; }
+    [Parameter]
+    public int pageViewID { get; set; }
+    [Parameter]
+    public int subdepartmentID { get; set; }
+    [Parameter]
+    public IList<SinglePage>? pages { get; set; }
+    int pageID = -1;
+    string state = "records";
+    string title = "Pages";
+    string pageContent;
+    public SinglePage singlePage;
+    private int currentTime;
+    bool showAlert = false;
+    string alertMessage = "";
+    string alertType = "alert alert-primary";
+    string toolTipMessage = "A Page is used to created content and store documents related to that specific content.";
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (dbContext.SinglePage.Any(p => p.ID == pageViewID))
+        {
+            SinglePage tmpPage = dbContext.SinglePage.First(p => p.ID == pageViewID);
+            title = tmpPage.Name;
+        }
+
+
+        if (state == "update")
+        {
+            if (dbContext.SinglePage.Any(p => p.ID == pageViewID))
+            {
+                singlePage = dbContext.SinglePage.First(p => p.ID == pageViewID);
+
+            }
+
+        }
+        else
+
+        {
+            singlePage = new SinglePage();
+
+        }
+        pages = dbContext.SinglePage.Where(p => p.SubdepartmentID == subdepartmentID).ToList();
+
+
+    }
+
+    async Task ViewTemplate()
+    {
+        string directory = "/itdocs/Templates";
+        var fileName = "Procedures_Template.docx";
+        var fileURL = directory + "/" + fileName;
+        await JS.InvokeVoidAsync("triggerFileDownload", fileName, fileURL);
+
+    }
+
+    void ReloadPage()
+    {
+
+        singlePage = dbContext.SinglePage.First(s => s.ID == singlePage.ID);
+    }
+
+    void ReloadPages()
+    {
+        pages = dbContext.SinglePage.Where(p => p.SubdepartmentID == subdepartmentID).ToList();
+    }
+
+    void SetState__event(string state)
+    {
+        this.action = "";
+        this.state = state;
+
+    }
+
+    void LoadPageContent__event(SinglePage singlePage)
+    {
+        title = singlePage.Name;
+        pageContent = singlePage.PageContent;
+
+
+    }
+
+    void CreatePage()
+    {
+        state = "create";
+        singlePage = new SinglePage();
+    }
+
+
+
+    void SetSinglePage(SinglePage singlePage)
+    {
+        pageID = singlePage.ID;
+        this.singlePage = singlePage;
+    }
+
+    void ShowAlert(bool showAlert)
+
+    {
+        this.showAlert = showAlert;
+        var timer = new Timer(new TimerCallback(_ =>
+        {
+            InvokeAsync(() =>
+            {
+            StateHasChanged();
+            this.showAlert = false;
+        });
+        }), null, 800, 800);
+
+        StateHasChanged();
+    }
+
+
+
+    void HideAlert()
+    {
+
+        this.showAlert = false;
+    }
+
+
+
+    void SetAlertMessage(string alertMessage)
+    {
+        this.alertMessage = alertMessage;
+
+    }
+
+    void SetAlertType(string alertType)
+    {
+        this.alertType = alertType;
+
+
+    }
+
+}

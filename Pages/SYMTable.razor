@@ -1,0 +1,212 @@
+@using ITDocumentation.Data
+@using System.Collections.Generic
+@using System.Data
+@using System.Globalization
+@using System;
+@using System.Diagnostics;
+@using System.IO;
+@inject ApplicationDbContext dbContext
+@inject NavigationManager NavigationManager
+@inject DialogService DialogService
+@inject IJSRuntime JS
+
+    <RadzenButton Text="Download Master SYMS list Template" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@ViewTemplate" @onclick:stopPropagation="true">
+    </RadzenButton>
+    <br>
+    <br>
+
+    <CSVControls tableName="SYMS"
+                 SetSYMList__parentEvent="@SetSYMList__parentEvent"
+                 show=@show
+                 SetShowProgressBar__parentEvent="@SetShowProgressBar__parentEvent" />
+    <br>
+    <RadzenDataGrid 
+                    AllowPaging="false" 
+                    AllowSorting="true"
+                    AllowFiltering="true"
+                    FilterMode="FilterMode.SimpleWithMenu"
+                    FilterCaseSensitivity="@filterCaseSensitivity"
+                    LogicalFilterOperator="@logicalFilterOperator"
+                    Data="@SYMList.AsEnumerable()"
+                    TItem="SYM"
+                Style="width:100%; height:800px; overflow:scroll;"
+                    GridLines="Radzen.DataGridGridLines.Vertical"
+                    AllowColumnResize="true" ColumnWidth="250px">
+
+        <Columns>
+            <RadzenDataGridColumn TItem="SYM" Property="@nameof(SYM.LPAR)" Title="LPAR">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SYM" Property="@nameof(SYM.SymNo)" Title="SYM Number">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SYM" Property="@nameof(SYM.DiskQuantity)" Title="Disk quantity">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SYM" Property="@nameof(SYM.SizeMB)" Title="Size in MB">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SYM" Property="@nameof(SYM.VersionSP)" Title="Version and SP">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SYM" Property="@nameof(SYM.SystemDate)" Title="Symtem Date">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SYM" Property="@nameof(SYM.SYMCreationDate)" Title="SYM Creation date">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SYM" Property="@nameof(SYM.Status)" Title="Status">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SYM" Property="@nameof(SYM.SYMCreationDate)" Title="SYM Creation date">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SYM" Property="@nameof(SYM.Status)" Title="Status">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SYM" Property="@nameof(SYM.Owner)" Title="Owner">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SYM" Property="@nameof(SYM.PointContact)" Title="Point of Contact">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SYM" Property="@nameof(SYM.SymFunctionality)" Title="SYM Functionality">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SYM" Property="@nameof(SYM.CurrentTesting)" Title="Current Testing">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SYM" Property="@nameof(SYM.ActiveCWRTested)" Title="Active CWR'S being tested'">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SYM" Property="@nameof(SYM.PhysicalLocation)" Title="Physical Location">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SYM" Property="@nameof(SYM.Notes)" Title="Notes">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SYM" Context="database" TextAlign="TextAlign.Right" Width="100px" Title="Actions">
+                <Template Context="sym">
+                @if (show == true)
+                {
+                    <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditRow(sym))" @onclick:stopPropagation="true" data-bs-toggle="collapse" href="#collapseDowntime" role="button" aria-expanded="false" aria-controls="collapseDowntime">
+                    </RadzenButton>
+                  
+                    <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => ShowDialog(sym))" @onclick:stopPropagation="true">
+                    </RadzenButton>
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+
+    </RadzenDataGrid>
+<script suppress-error="BL9992">
+    window.triggerFileDownload = (fileName, url) => {
+        const anchorElement = document.createElement('a');
+        anchorElement.href = url;
+        anchorElement.download = fileName ?? '';
+        anchorElement.click();
+        anchorElement.remove();
+    }
+</script>
+
+@code {
+    [Parameter]
+    public List<SYM> SYMList { get; set; }
+    RadzenDataGrid<SYM> SYMGrid;
+    [Parameter]
+    public EventCallback<string> SetState__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<SYM> SetSYM__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<bool> ShowAlert__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertMessage__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertType__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<List<SYM>> SetSYMList__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<bool> SetShowProgressBar__parentEvent { get; set; }
+    [Parameter]
+    public string UserName { get; set; }
+    [Parameter]
+    public bool show { get; set; }
+    FilterCaseSensitivity filterCaseSensitivity = FilterCaseSensitivity.CaseInsensitive;
+    LogicalFilterOperator logicalFilterOperator = LogicalFilterOperator.Or;
+
+
+    
+
+    async Task ViewTemplate()
+    {
+        string directory = "/itdocs/Templates";
+        var fileName = "MasterSYMList.xlsx";
+        var fileURL = directory + "/" + fileName;
+        await JS.InvokeVoidAsync("triggerFileDownload", fileName, fileURL);
+
+    }
+
+
+
+    void StoreData(string fileName)
+    {
+        string script = Directory.GetCurrentDirectory() + @"\wwwroot\python\Import.py";
+        char[] splitter = { '\r' };
+        string fileType = Path.GetExtension(fileName);
+        if (fileType == ".csv")
+        {
+            fileType = "csv";
+
+        }
+        else
+        {
+            fileType = "excel";    
+
+        }
+
+        Process p = new Process();
+        p.StartInfo.FileName = @"C:\Users\yreyes\AppData\Local\Programs\Python\Python312\python.exe";
+        p.StartInfo.RedirectStandardOutput = true;
+        p.StartInfo.UseShellExecute = false;
+        p.StartInfo.Arguments = string.Concat(script," ",fileName," ",fileType);
+        p.Start();
+        StreamReader sReader = p.StandardOutput;
+        string[] output = sReader.ReadToEnd().Split(splitter);
+
+        foreach (string s in output)
+            Console.WriteLine(s);
+
+        p.WaitForExit();
+
+        Console.ReadLine();
+    }
+
+    async Task EditRow(SYM sym)
+    {
+        await SetSYM__parentEvent.InvokeAsync(sym);
+        await SetState__parentEvent.InvokeAsync("update");
+    }
+
+    async Task DeleteRow(SYM sym, DialogService ds)
+    {
+
+        if (this.SYMList!.Contains(sym))
+        {
+            dbContext.SYMS.Remove(sym);
+            dbContext.SaveChanges();
+            SYMList = dbContext.SYMS.ToList();
+           
+            SetSYMList__parentEvent.InvokeAsync(SYMList);
+            ShowAlert__ParentEvent.InvokeAsync(true);
+            SetAlertMessage__ParentEvent.InvokeAsync("Record Succesfully deleted");
+            SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+
+        }
+
+        ds.Close(false);
+    }
+
+    async Task ShowDialog(SYM sym)
+    {
+
+        var result = await DialogService.OpenAsync("Confirmation", ds =>
+    @<RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <p>Are you sure you want to delete the record?</p>
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenButton Text="Ok" Click="() => DeleteRow(sym,ds)" Style="width: 80px;" />
+                <RadzenButton Text="Cancel" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Light" />
+            </RadzenStack>
+        </RadzenStack>
+        </RadzenStack>
+    );
+
+    }
+
+
+
+}

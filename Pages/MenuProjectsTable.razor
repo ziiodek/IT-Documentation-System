@@ -1,0 +1,50 @@
+﻿@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+
+<RadzenDataGrid 
+                AllowPaging="true"
+                PageSize="5"
+                GridLines="Radzen.DataGridGridLines.Vertical"
+                Data="@projects"
+                TItem="Project">
+
+    <Columns>
+        <RadzenDataGridColumn TItem="Project" Property="Project.Name" Title="Project Name" Width="100%">
+            <EditTemplate Context="project">
+                <RadzenTextBox @bind-Value=@project.Name style="width:100%;" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Project" Context="project" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="156px">
+            <Template Context="project">
+                <RadzenButton Icon="add" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => AddMenuItem(project))" @onclick:stopPropagation="true">
+                </RadzenButton>
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+
+</RadzenDataGrid>
+
+
+
+@code {
+
+    [Parameter]
+    public List<Project> projects { get; set; }
+    [Parameter]
+    public EventCallback<int> setPageID__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<bool> showForm__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> setPageType__parentEvent {get;set;}
+
+    void AddMenuItem(Project project)
+    {
+        setPageID__parentEvent.InvokeAsync(project.ID);
+        setPageType__parentEvent.InvokeAsync("project");
+        showForm__parentEvent.InvokeAsync(true);
+
+    }
+
+}

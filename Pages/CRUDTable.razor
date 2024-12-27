@@ -1,0 +1,126 @@
+@using ITDocumentation.Data
+@inject ProtectedSessionStorage ProtectedSessionStore
+@inject ApplicationDbContext dbContext
+
+<div style="@visible">
+    @ChildContent
+</div>
+
+@code {
+    public string visible = " display:inline; padding:0px; margin:0px;";
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+    [Parameter]
+    public int subdepartmentID { get; set; }
+    [Parameter]
+    public string action { get; set; }
+  
+    protected override async Task OnInitializedAsync()
+    {
+        var resultRole = await ProtectedSessionStore.GetAsync<string>("role");
+        if (resultRole.Success)
+        {
+            string role = resultRole.Value!.ToString();
+            if (role == "REGULAR")
+            {
+                var result = await ProtectedSessionStore.GetAsync<int>("subdepartment");
+                if (result.Success)
+                {
+                    int tmp_subdepartment = result.Value;
+
+                    Subdepartment admin = dbContext.Subdepartment.First(s => s.Name == "Admin");
+
+
+                    if (tmp_subdepartment == subdepartmentID || subdepartmentID == 0)
+                    {
+
+                        if (action == "edit" || action == "add")
+                        {
+                            if (tmp_subdepartment == subdepartmentID)
+                            {
+                            
+                                visible = "display:block;";
+
+                            }
+                            else
+                            {
+                                visible = "display:none;";
+
+                            }
+                        }
+                        else
+                        {
+                            visible = "display:none;";
+
+                        }
+
+
+
+                    }
+                    else
+                    {
+
+                        visible = "display:none;";
+
+                    }
+
+                }
+
+
+            }
+            else
+            {
+                var resultName = await ProtectedSessionStore.GetAsync<string>("username");
+
+                if (resultName.Success)
+                {
+                    if (dbContext.UserRole.Any(u => u.Username == resultName.Value.ToString()))
+                    {
+                        UserRole userRole = dbContext.UserRole.First(u => u.Username == resultName.Value!.ToString());
+
+
+
+                        if (IsAssignedToDepartment(userRole.Username!) == true)
+                        {
+                            visible = "display:block;";
+
+                        }
+                        else
+                        {
+                            visible = "display:none;";
+
+                        }
+
+
+                    }
+                    else
+                    {
+                        visible = "display:none;";
+
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+
+
+    bool IsAssignedToDepartment(string userName)
+    {
+        List<UserSubdepartment> userSubdepartments = dbContext.UserSubdepartment.Where(u => u.Username == userName).ToList();
+        foreach (var subdepartment in userSubdepartments)
+        {
+            if (subdepartment.SubdepartmentID == subdepartmentID || subdepartmentID == 0)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+}

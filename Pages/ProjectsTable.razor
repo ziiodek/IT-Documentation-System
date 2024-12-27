@@ -1,0 +1,218 @@
+@using ITDocumentation.Data
+@using ITDocumentation.Classes
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+@inject NavigationManager NavigationManager
+@implements Filter
+@inject DialogService DialogService
+@inject ProtectedSessionStorage ProtectedSessionStore
+
+
+
+<TableFilter nameFilter__parentEvent="@NameFilter"
+             authorNameFilter__parentEvent="@AuthorFilter"
+             dateFilter__parentEvent="@DateFilter"
+             resetFilter__parentEvent="@ResetFilter" />
+<br>
+<RadzenDataGrid ColumnWidth="300px"
+                AllowColumnResize="true"
+                AllowPaging="true"
+                PageSize="20"
+                GridLines="Radzen.DataGridGridLines.Vertical"
+                Data="@projects"
+                TItem="Project">
+
+    <Columns>
+        <RadzenDataGridColumn TItem="Project" Property="Project.Name" Title="Project Name" Width="100%">
+            <EditTemplate Context="project">
+                <RadzenTextBox @bind-Value=@project.Name style="width:100%;" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Project" Property="Project.AuthorName" Title="Author Name" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Project" Property="Project.DateTime" Title="Creation Date/Time" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Project" Property="Project.ModifiedBy" Title="Modified By" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Project" Property="Project.ModifiedDate" Title="Modified Date/Time" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Project" Context="project" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="156px">
+            <Template Context="project">
+                <RadzenButton Icon="visibility" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => ViewRow(project))" @onclick:stopPropagation="true">
+                </RadzenButton>
+                <CRUDTable subdepartmentID="@subdepartmentID" action="edit">
+                    <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditRow(project))" @onclick:stopPropagation="true">
+                    </RadzenButton>
+                </CRUDTable>
+                <CRUDTable subdepartmentID="@subdepartmentID" action="delete">
+                    <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => ShowDialog(project))" @onclick:stopPropagation="true">
+                    </RadzenButton>
+                </CRUDTable>
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+
+@code {
+
+    [Parameter]
+    public IList<Project>? projects { get; set; }
+    [Parameter]
+    public int subdepartmentID { get; set; }
+    RadzenDataGrid<Project>? projectsGrid;
+    [Parameter]
+    public EventCallback<string> SetState__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<Project> SetProject__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<bool> ShowAlert__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertMessage__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertType__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback ReloadProjects__ParentEvent { get; set; }
+
+    DocumentsHandler? documentsHandler;
+    TagsHelper tagsHelper;
+    SinglePagesHelper singlePagesHelper;
+
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        documentsHandler = new DocumentsHandler(dbContext);
+        projects = dbContext.Project.Where(p => p.SubdepartmentID == subdepartmentID).ToList();
+        tagsHelper = new TagsHelper();
+        singlePagesHelper = new SinglePagesHelper(dbContext);
+
+    }
+
+
+    void SetState__event()
+    {
+        SetState__parentEvent.InvokeAsync("create");
+    }
+
+
+    void Reset()
+    {
+
+    }
+
+    async Task ViewRow(Project project)
+    {
+        await SetProject__parentEvent.InvokeAsync(project);
+        await SetState__parentEvent.InvokeAsync("view");
+
+    }
+
+    async Task EditRow(Project project)
+    {
+        await SetProject__parentEvent.InvokeAsync(project);
+        await SetState__parentEvent.InvokeAsync("update");
+    }
+
+
+    void CancelEdit(Project project)
+    {
+
+    }
+
+    async void deleteProjectPages(Project project)
+    {
+        //var result = await ProtectedSessionStore.GetAsync<string>("user");
+        var pages = dbContext.ProjectPage.Where(p => p.ProjectID == project.ID).ToList();
+
+        foreach (var page in pages)
+        {
+
+            //documentsHandler!.deleteAllDocuments("projectPage", page.ID,result.Value);
+            //documentsHandler!.deleteProjectPage__documents(page);
+            dbContext.ProjectPage.Remove(page);
+            dbContext.SaveChanges();
+        }
+
+    }
+    void DeleteRow(Project project, DialogService ds)
+    {
+
+        if (projects.Contains(project))
+        {
+            singlePagesHelper.deleteProject__menuItems(project.ID);
+            deleteProjectPages(project);
+            dbContext.Project.Remove(project);
+            dbContext.SaveChanges();
+
+            projectsGrid.Reload();
+        }
+        else
+        {
+            projectsGrid.CancelEditRow(project);
+            projectsGrid.Reload();
+        }
+        ds.Close(false);
+        ShowAlert__ParentEvent.InvokeAsync(true);
+        SetAlertMessage__ParentEvent.InvokeAsync("Record Succesfully deleted");
+        SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+        ReloadProjects__ParentEvent.InvokeAsync();
+        //singlePagesHelper.DeleteJsonTagsNode(project.ID, "Project");
+    }
+
+    async Task ShowDialog(Project project)
+    {
+
+        var result = await DialogService.OpenAsync("Confirmation", ds =>
+    @<RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <p>Are you sure you want to delete the record?</p>
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenButton Text="Ok" Click="() => DeleteRow(project,ds)" Style="width: 80px;" />
+                <RadzenButton Text="Cancel" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Light" />
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenStack>
+        );
+
+    }
+
+}
+
+@functions {
+    public void NameFilter(string name)
+    {
+        projects = dbContext.Project.Where(p => p.Name!.Contains(name) && p.SubdepartmentID == subdepartmentID).ToList();
+    }
+
+    public void AuthorFilter(string authorName)
+    {
+        projects = dbContext.Project.Where(p => p.AuthorName!.Contains(authorName) && p.SubdepartmentID == subdepartmentID).ToList();
+    }
+
+    public void DateFilter(DateTime? date)
+    {
+        List<Project> tmpProjects = dbContext.Project.Where(p => p.SubdepartmentID == subdepartmentID).ToList();
+        List<Project> dateProjects = new List<Project>();
+        foreach (var project in tmpProjects)
+        {
+            DateTime projectDate = project.DateTime;
+            DateTime d = date.HasValue ? date.Value : DateTime.Now;
+            if (projectDate.ToString().Contains(d.ToString("M/d/yyyy")))
+            {
+                dateProjects.Add(project);
+            }
+        }
+        projects = dateProjects;
+
+    }
+
+    public void ResetFilter()
+    {
+        projects = dbContext.Project.Where(p => p.SubdepartmentID == subdepartmentID).ToList();
+    }
+
+}
+

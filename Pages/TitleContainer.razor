@@ -1,0 +1,25 @@
+@inject TooltipService tooltipService
+
+<div class="dark-blue-header">
+    @if(showTooltip == true){
+        <RadzenIcon Icon="info" MouseEnter="@(args => ShowTooltip(args) )" />@content
+    }else{
+
+        @content
+    }
+
+</div>
+
+@code
+{
+
+    [Parameter]
+    public string? content { get; set; }
+    [Parameter]
+    public bool? showTooltip { get; set; }
+    [Parameter]
+    public string toolTipMessage { get; set; }
+
+    void ShowTooltip(ElementReference elementReference, TooltipOptions options = null) => tooltipService.Open(elementReference, toolTipMessage, options);
+
+}

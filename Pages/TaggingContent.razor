@@ -1,0 +1,125 @@
+﻿@using System.Text.Json.Nodes
+@inject TooltipService tooltipService
+
+
+<RadzenCard>
+    <h5>Tag the content of this page</h5>
+    <br>
+    <div class="row">
+        <div class="col-sm-6">
+            <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">*Main Tags:</RadzenText>
+            <RadzenDropDown @bind-Value=@tag Name="MainTags" Data=@tagList Style="width: 100%; max-width: 400px;" Change="@OnChange" Chips=true Multiple="true" />
+            <br>
+            @{
+                if (currentTags.Count <= 0)
+                {   
+                    <RadzenRequiredValidator Component="MainTags" Text="At least one main tag is required" Popup="true" Style="position: absolute" />
+
+                }
+            }
+
+        </div>
+        <div class="col-sm-6">
+            <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3"><RadzenIcon Icon="info" MouseEnter="@(args => ShowTooltip(args) )" />Additional Tags:</RadzenText>
+            <div class="row">
+                <div class="col-sm-6">
+                    <RadzenTextBox @bind-Value=@addTag1 Name="addTag1" style="width:100%;" Change="@ChangeTag1" />
+                </div>
+                <div class="col-sm-6">
+                    <RadzenTextBox @bind-Value=@addTag2 Name="addTag2" style="width:100%;" Change="@ChangeTag2" />
+                </div>
+            </div>
+            <br>
+            <div class="row">
+                <div class="col-sm-6">
+                    <RadzenTextBox @bind-Value=@addTag3 Name="addTag3" style="width:100%;" Change="@ChangeTag3" />
+                </div>
+                <div class="col-sm-6">
+                    <RadzenTextBox @bind-Value=@addTag4 Name="addTag4" style="width:100%;" Change="@ChangeTag4" />
+                </div>
+            </div>
+        </div>
+    </div>
+</RadzenCard>
+
+
+@code {
+    [Parameter]
+    public List<string> tag { get; set; }
+    [Parameter]
+    public List<string> currentTags { get; set; }
+    [Parameter]
+    public string addTag1 { get; set; }
+    [Parameter]
+    public string addTag2 { get; set; }
+    [Parameter]
+    public string addTag3 { get; set; }
+    [Parameter]
+    public string addTag4 { get; set; }
+
+
+    [Parameter]
+    public EventCallback<List<string>> SetTagList__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetTag1__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetTag2__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetTag3__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetTag4__parentEvent { get; set; }
+
+
+    List<string> tagList;
+    JsonReader reader = new JsonReader();
+    List<DocumentTags> documentTagList = new List<DocumentTags>();
+    string toolTipMessage = "Additional tags are intentent to relate a content and it's documents to an specific KACE ticket,RFC or to a vendor.";
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        tagList = new List<string>();
+
+        JsonNode tag = reader.getTags("Tags.json");
+        foreach (var tagName in tag["Tags"].AsArray())
+        {
+            tagList.Add(tagName.ToString());
+        }
+
+    }
+
+    void OnChange(object value)
+    {
+        SetTagList__parentEvent.InvokeAsync(tag);
+
+    }
+
+    void ChangeTag1(string value)
+    {
+
+        SetTag1__parentEvent.InvokeAsync(addTag1);
+
+    }
+
+    void ChangeTag2(string value)
+    {
+        SetTag2__parentEvent.InvokeAsync(addTag2);
+
+    }
+
+    void ChangeTag3(string value)
+    {
+        SetTag3__parentEvent.InvokeAsync(addTag3);
+
+    }
+
+    void ChangeTag4(string value)
+    {
+        SetTag4__parentEvent.InvokeAsync(addTag4);
+
+    }
+
+
+    void ShowTooltip(ElementReference elementReference, TooltipOptions options = null) => tooltipService.Open(elementReference, toolTipMessage, options);
+
+}

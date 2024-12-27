@@ -1,0 +1,29 @@
+@inject ProtectedSessionStorage ProtectedSessionStore
+
+<div style="@visible">
+    @ChildContent
+</div>
+
+@code {
+    public string visible = " display: block;";
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+    [Parameter]
+    public int subdepartmentID { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        var result = await ProtectedSessionStore.GetAsync<int>("subdepartment");
+        if (result.Success)
+        {
+            int tmp_subdepartment = result.Value;
+            if (tmp_subdepartment != subdepartmentID)
+            {
+                visible = "display:none;";
+            }
+
+        }
+    }
+
+}

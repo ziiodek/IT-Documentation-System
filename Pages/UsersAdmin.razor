@@ -1,0 +1,134 @@
+@page "/users"
+
+@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+@inject ProtectedSessionStorage ProtectedSessionStore
+
+    <TitleContainer content="@title" />
+
+    <br>
+    @{
+        if (showAlert == true)
+        {
+           
+            
+            
+            <AlertMessage content="@alertMessage"
+                          alertType="@alertType"
+                          HideAlert__ParentEvent="@HideAlert" />
+
+
+        }
+
+    }
+
+
+    @{
+
+        if (state == "records")
+        {
+            <UsersTable userRoles="@userRoles"
+                        SetState__parentEvent="@SetState__event"
+                        departmentID="@departmentID"
+                        SetUserRole__parentEvent="@SetUserRole" />
+        }
+
+        if (state == "update")
+        {
+            <UserRoleForm setState__parentEvent="@SetState__event"
+                          userRole="@userRole"
+                          departmentID="@departmentID"
+                          SetAlertMessage__ParentEvent="@SetAlertMessage"
+                          SetAlertType__ParentEvent="@SetAlertType"
+                          ShowAlert__ParentEvent="@ShowAlert" />
+        }
+    }
+
+
+
+
+@code {
+    string state = "records";
+    UserRole userRole = new UserRole();
+    int departmentID { get; set; }
+    IList<UserRole>? userRoles { get; set; }
+    string title = "Users";
+    string alertMessage = "";
+    string alertType = "alert alert-primary";
+    bool showAlert = false;
+    private int currentTime;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        Initializer testInit = new Initializer(dbContext);
+        testInit.initUsers("INFORMATION TECHNOLOGY");
+        //testInit.initUsers("IT");
+        //testInit.initUsers("EXECUTIVE");
+        //testInit.initUsers("ADMINISTRATION");
+        var result = await ProtectedSessionStore.GetAsync<string>("department");
+        if (result.Success)
+        {
+            string departmentName = result.Value!.ToUpper();
+            if (dbContext.Department.Any(d => d.Name == departmentName))
+            {
+                Department department = dbContext.Department.First(p => p.Name == departmentName);
+                departmentID = department.ID;
+            }
+        }
+
+        userRoles = dbContext.UserRole.Where(u => u.DepartmentID == departmentID).ToList();
+
+    }
+
+    void SetState__event(string state)
+    {
+        this.state = state;
+
+    }
+
+    void SetUserRole(UserRole userRole)
+    {
+        this.userRole = userRole;
+    }
+
+    void ShowAlert(bool showAlert)
+    {
+        this.showAlert = showAlert;
+        var timer = new Timer(new TimerCallback(_ =>
+      {
+          currentTime++;
+          InvokeAsync(() =>
+         {
+             StateHasChanged();
+             this.showAlert = false;
+         });
+      }), null, 5000, 5000);
+
+
+    }
+
+    void HideAlert()
+    {
+
+        this.showAlert = false;
+    }
+
+    void SetAlertMessage(string alertMessage)
+    {
+        this.alertMessage = alertMessage;
+
+    }
+
+    void SetAlertType(string alertType)
+    {
+        this.alertType = alertType;
+
+
+    }
+
+
+}
+

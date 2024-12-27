@@ -1,0 +1,186 @@
+﻿@using System.Text.Json
+@using System.Text.Json.Nodes
+@using ITDocumentation.Classes
+@using ITDocumentation.Data
+@inject ApplicationDbContext dbContext
+
+<div class="row" style="text-align:right; width:50%; position:absolute; top:-175px; margin-left:55%;">
+        <div class="col-sm-1" >
+        <RadzenButton Icon="search" ButtonStyle="ButtonStyle.Primary" Click=@(args => Submit()) />
+        </div>
+    <div class="col-sm-8">
+        <RadzenTextBox @bind-Value=@searchString style="width:100%;" Change=@(args => Submit()) />
+
+    </div>
+    </div>
+
+@code {
+    string searchString = "";
+    string[] words;
+    JsonReader reader;
+    JsonNode contentTags;
+    JsonNode documentsTags;
+    [Parameter]
+    public EventCallback<List<KeyValuePair<int, string>>> SetDictionary__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<List<SearchResult>> SetResults__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<bool> SetShowSearchResults__ParentEvent { get; set; }
+    [Parameter]
+    public bool searchArchive { get; set; }
+    List<KeyValuePair<int, string>> tags;
+    List<SearchResult> results;
+    List<Document> documents = new List<Document>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        reader = new JsonReader();
+        tags = new List<KeyValuePair<int, string>>();
+        results = new List<SearchResult>();
+
+    }
+
+    void Submit()
+    {
+        results = new List<SearchResult>();
+        tags = new List<KeyValuePair<int, string>>();
+
+        if (searchString != "")
+        {
+            searchString = searchString.ToLower();
+            searchString = searchString.TrimEnd();
+            searchString = searchString.TrimStart();
+            words = searchString.Split(" ");
+
+            if (searchArchive != true)
+            {
+                GetSearchResults();
+
+            }
+            else
+            {
+                GetArchiveSearchResults();
+            }
+
+
+            SetDictionary__ParentEvent.InvokeAsync(tags);
+            SetResults__ParentEvent.InvokeAsync(results);
+            SetShowSearchResults__ParentEvent.InvokeAsync(true);
+        }
+        else
+        {
+            SetShowSearchResults__ParentEvent.InvokeAsync(false);
+
+
+        }
+
+
+    }
+
+    void GetDocuments(string keyword)
+    {
+        List<Document> documents = dbContext.Document.Where(d => d.IsArchive == false).ToList();
+        foreach (var document in documents)
+        {
+            string name = document.Name;
+            if(name.ToLower().Contains(keyword))
+            {
+                SearchResult resultDocument = new SearchResult();
+                resultDocument.ID = document.ID;
+                resultDocument.Type = "document";
+                resultDocument.Name = document.Name;
+                resultDocument.Status = document.Status;
+                resultDocument.ApprovedBy = document.ApprovedBy;
+                resultDocument.AuthorName = document.AuthorName;
+                resultDocument.DateTime = document.DateTime;
+                resultDocument.ModifiedBy = document.ModifiedBy;
+                resultDocument.ModifiedDate = document.ModifiedDate;
+                results.Add(resultDocument);
+
+            }
+
+        }
+
+    }
+
+    void GetArchiveDocuments(string keyword)
+    {
+
+        List<Document> documents = dbContext.Document.Where(d => d.IsArchive == true).ToList();
+        foreach (var document in documents)
+        {
+            string name = document.Name;
+            if (name.ToLower().Contains(keyword))
+            {
+                SearchResult resultDocument = new SearchResult();
+                resultDocument.ID = document.ID;
+                resultDocument.Type = "document";
+                resultDocument.Name = document.Name;
+                resultDocument.Status = document.Status;
+                resultDocument.ApprovedBy = document.ApprovedBy;
+                resultDocument.AuthorName = document.AuthorName;
+                resultDocument.DateTime = document.DateTime;
+                resultDocument.ModifiedBy = document.ModifiedBy;
+                resultDocument.ModifiedDate = document.ModifiedDate;
+                results.Add(resultDocument);
+
+            }
+
+        }
+
+    }
+
+
+    void GetPages(string keyword)
+    {
+
+        List<SinglePage> pages = dbContext.SinglePage.ToList();
+
+        foreach(SinglePage page in pages)
+        {
+            string name = page.Name;
+            
+            if (String.Compare(name, "About") != 0 && String.Compare(name, "Manual Procedures") != 0 && String.Compare(name, "Database List") != 0 && String.Compare(name, "Core Values") != 0)
+            {
+                if (name.ToLower().Contains(keyword))
+                {
+                    SearchResult resultDocument = new SearchResult();
+                    resultDocument.ID = page.ID;
+                    resultDocument.Type = "page";
+                    resultDocument.Name = page.Name;
+                    resultDocument.AuthorName = page.AuthorName;
+                    resultDocument.DateTime = page.DateTime;
+                    resultDocument.ModifiedBy = page.ModifiedBy;
+                    resultDocument.ModifiedDate = page.ModifiedDate;
+                    results.Add(resultDocument);
+
+                }
+            }
+        }
+    }
+
+
+    void GetArchiveSearchResults()
+    {
+        foreach (string word in words)
+        {
+            GetArchiveDocuments(word);
+            GetPages(word);
+
+        }
+
+
+    }
+
+    void GetSearchResults()
+    {
+
+        foreach (string word in words)
+        {
+            GetDocuments(word);
+            GetPages(word);
+
+        }
+    }
+
+}

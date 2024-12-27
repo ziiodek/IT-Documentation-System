@@ -1,0 +1,27 @@
+﻿@if (isLoaded)
+{
+    @ChildContent
+}
+else
+{
+    <div style="margin:0px; padding:0;">
+        <center>
+    <RadzenProgressBarCircular ProgressBarStyle="ProgressBarStyle.Primary" Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    <br>
+    <div>Loading screen...</div>
+    </center>
+    </div>
+}
+
+@code {
+    bool isLoaded;
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.Delay(4000); 
+        isLoaded = true;
+    }
+}

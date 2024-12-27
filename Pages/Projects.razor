@@ -1,0 +1,174 @@
+@page "/projects/{subdepartmentID:int}"
+@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+
+    <TitleContainer content="@title"
+        showTooltip="true"
+        toolTipMessage="@toolTipMessage"
+        />
+    <br>
+    @{
+        if (showAlert == true)
+        {
+            <AlertMessage content="@alertMessage"
+                          alertType="@alertType"
+                          HideAlert__ParentEvent="@HideAlert" />
+
+
+        }
+
+
+    }
+
+    @{
+        if (state == "records")
+        {
+
+            <CRUDTable subdepartmentID="@subdepartmentID" action="add">
+                <RadzenButton Icon="add_circle_outline" Class="mt-2 mb-4" Text="Create Project" Click="@(args => CreateProject())" />
+            </CRUDTable>
+            <ProjectsTable projects="@projects"
+                           SetState__parentEvent="@SetState__event"
+                           subdepartmentID="@subdepartmentID"
+                           SetProject__parentEvent="@SetProject"
+                           SetAlertMessage__ParentEvent="@SetAlertMessage"
+                           SetAlertType__ParentEvent="@SetAlertType"
+                           ShowAlert__ParentEvent="@ShowAlert"
+                           ReloadProjects__ParentEvent="@ReloadProjects" />
+        }
+
+        if (state == "create")
+        {
+            <ProjectForm subdepartmentID="@subdepartmentID"
+                         SetState__parentEvent="@SetState__event"
+                         project="@project"
+                         state="create"
+                         SetAlertMessage__ParentEvent="@SetAlertMessage"
+                         SetAlertType__ParentEvent="@SetAlertType"
+                         ShowAlert__ParentEvent="@ShowAlert" />
+        }
+
+        if (state == "update")
+        {
+            <ProjectForm subdepartmentID="@subdepartmentID"
+                         SetState__parentEvent="@SetState__event"
+                         project="@project"
+                         state="update"
+                         SetAlertMessage__ParentEvent="@SetAlertMessage"
+                         SetAlertType__ParentEvent="@SetAlertType"
+                         ShowAlert__ParentEvent="@ShowAlert" />
+        }
+
+
+        if (state == "view")
+        {
+            <ProjectForm subdepartmentID="@subdepartmentID"
+                         SetState__parentEvent="@SetState__event"
+                         project="@project"
+                         state="view"
+                         SetAlertMessage__ParentEvent="@SetAlertMessage"
+                         SetAlertType__ParentEvent="@SetAlertType"
+                         ShowAlert__ParentEvent="@ShowAlert" />
+        }
+
+
+    }
+
+
+@code {
+
+    [Parameter]
+    public IList<Project> projects { get; set; }
+    [Parameter]
+    public int subdepartmentID { get; set; }
+    Project project;
+    string title = "Projects";
+    string state = "records";
+    bool showAlert = false;
+    private int currentTime;
+    string alertMessage = "";
+    string alertType = "alert alert-primary";
+    string toolTipMessage = "A project is a place where you can create pages related to the same topic.";
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        projects = dbContext.Project.Where(p => p.SubdepartmentID == subdepartmentID).ToList();
+
+    }
+
+    void SetState__event(string state)
+    {
+        if (state == "records")
+        {
+            ReloadProjects();
+        }
+        this.state = state;
+
+    }
+
+    void CreateProject()
+    {
+        state = "create";
+        project = new Project();
+
+
+    }
+
+    void ReloadProjects()
+    {
+
+        projects = dbContext.Project.Where(p => p.SubdepartmentID == subdepartmentID).ToList();
+
+    }
+
+    void SetProject(Project project)
+    {
+        this.project = project;
+    }
+
+    void ShowAlert(bool showAlert)
+
+    {
+        this.showAlert = showAlert;
+        var timer = new Timer(new TimerCallback(_ =>
+        {
+            currentTime++;
+            InvokeAsync(() =>
+            {
+            StateHasChanged();
+            this.showAlert = false;
+            });
+            }), null, 800, 800);
+    }
+
+
+
+    void HideAlert()
+    {
+
+        this.showAlert = false;
+    }
+
+
+
+    void SetAlertMessage(string alertMessage)
+    {
+        this.alertMessage = alertMessage;
+
+    }
+
+    void SetAlertType(string alertType)
+    {
+        this.alertType = alertType;
+
+
+    }
+
+
+
+
+}
+

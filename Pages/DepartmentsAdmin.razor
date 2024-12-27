@@ -1,0 +1,159 @@
+@page "/department"
+@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+@inject ProtectedSessionStorage ProtectedSessionStore
+@using System.Threading;
+
+
+    <TitleContainer content="@title" />
+    <br>
+    @{
+        if (showAlert == true)
+        {
+            <AlertMessage content="@alertMessage"
+                          alertType="@alertType"
+                          HideAlert__ParentEvent="@HideAlert" />
+
+
+        }
+
+
+    }
+
+
+
+    @{
+
+        if (state == "records")
+        {
+            <RadzenButton Icon="add_circle_outline" Class="mt-2 mb-4" Text="Add Department" Click="@(args => CreateSubdepartment())" />
+            <DepartmentsTable subdepartments="@subdepartments"
+                              SetState__ParentEvent="@SetState__event"
+                              departmentID="@departmentID"
+                              SetSubdepartment__ParentEvent="@SetSubdepartment"
+                              SetAlertMessage__ParentEvent="@SetAlertMessage"
+                              SetAlertType__ParentEvent="@SetAlertType"
+                              ShowAlert__ParentEvent="@ShowAlert"
+                              ReloadDepartments__ParentEvent="@ReloadSubdepartments" />
+        }
+
+
+        if (state == "create")
+        {
+            <DepartmentForm SetState__ParentEvent="@SetState__event"
+                            subdepartment="@subdepartment"
+                            state="create"
+                            departmentID="@departmentID"
+                            ReloadSubdepartments__ParentEvent="@ReloadSubdepartments"
+                            SetAlertMessage__ParentEvent="@SetAlertMessage"
+                            SetAlertType__ParentEvent="@SetAlertType"
+                            ShowAlert__ParentEvent="@ShowAlert" />
+        }
+
+        if (state == "update")
+        {
+            <DepartmentForm SetState__ParentEvent="@SetState__event"
+                            subdepartment="@subdepartment"
+                            state="update"
+                            departmentID="@departmentID"
+                            ReloadSubdepartments__ParentEvent="@ReloadSubdepartments"
+                            SetAlertMessage__ParentEvent="@SetAlertMessage"
+                            SetAlertType__ParentEvent="@SetAlertType"
+                            ShowAlert__ParentEvent="@ShowAlert" />
+        }
+    }
+
+@code {
+    string state = "records";
+    Subdepartment subdepartment;
+    int departmentID { get; set; }
+    IList<Subdepartment> subdepartments { get; set; }
+    string title = "Departments";
+    bool showAlert = false;
+    string alertMessage = "";
+    string alertType = "alert alert-primary";
+    private int currentTime;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await ProtectedSessionStore.GetAsync<string>("department");
+        if (result.Success)
+        {
+            string departmentName = result.Value!.ToUpper();
+            if (dbContext.Department.Any(d => d.Name == departmentName))
+            {
+                Department department = dbContext.Department.First(p => p.Name == departmentName);
+                departmentID = department.ID;
+            }
+        }
+
+        subdepartment = new Subdepartment();
+        subdepartments = dbContext.Subdepartment.Where(s => s.DepartmentID == departmentID && s.Name != "Admin").ToList();
+
+    }
+
+    void SetState__event(string state)
+    {
+        this.state = state;
+
+    }
+
+    void CreateSubdepartment()
+    {
+        state = "create";
+        subdepartment = new Subdepartment();
+    }
+
+    void ReloadSubdepartments()
+    {
+        subdepartments = dbContext.Subdepartment.Where(s => s.DepartmentID == departmentID && s.Name != "Admin").ToList();
+
+    }
+
+    void SetSubdepartment(Subdepartment subdepartment)
+    {
+        this.subdepartment = subdepartment;
+    }
+
+
+    void ShowAlert(bool showAlert)
+
+    {
+        this.showAlert = showAlert;
+        var timer = new Timer(new TimerCallback(_ =>
+        {
+            currentTime++;
+            InvokeAsync(() =>
+           {
+            StateHasChanged();
+            this.showAlert = false;
+            });
+        }), null, 5000, 5000);
+
+
+    }
+
+    void HideAlert()
+    {
+
+        this.showAlert = false;
+    }
+
+    void SetAlertMessage(string alertMessage)
+    {
+        this.alertMessage = alertMessage;
+
+    }
+
+    void SetAlertType(string alertType)
+    {
+        this.alertType = alertType;
+
+
+    }
+
+
+}

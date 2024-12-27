@@ -1,0 +1,79 @@
+<RadzenTemplateForm Data="@table" Submit="@((Table args) => { Submit(args); })">
+    <div class="row">
+        <div class="col-sm-2 ">
+            <RadzenLabel Text="Number of rows" />
+        </div>
+        <div class="col-sm-8">
+            <RadzenNumeric @bind-Value=@table.Rows Name="Rows" style="width:100%;" />
+            <br>
+            <RadzenRequiredValidator Component="Rows" Text="Number of Rows" Popup="true" Style="position: absolute" />
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-sm-2 ">
+            <RadzenLabel Text="Number of columns" />
+        </div>
+        <div class="col-sm-8">
+            <RadzenNumeric @bind-Value=@table.Columns Name="Columns" style="width:100%;" />
+            <br>
+            <RadzenRequiredValidator Component="Columns" Text="Number of Columns" Popup="true" Style="position: absolute" />
+        </div>
+    </div>
+
+    <br>
+    <br>
+    <div class="row justify-content-center">
+        <div class="col-md-12 d-flex align-items-end justify-content-left" style="margin-top: 16px;">
+            <RadzenButton ButtonType="ButtonType.Submit" Text="Create Table" />
+            <RadzenButton Icon="cancel" style="display: inline-block; margin-left: 10px;" Text="Cancel" Click="@Cancel" />
+        </div>
+    </div>
+</RadzenTemplateForm>
+
+
+@code {
+
+    [Parameter]
+    public EventCallback<string> updateValue__parentEvent { get; set; }
+    [Parameter]
+    public DialogService ds { get; set; }
+
+
+    Table table = new Table();
+    string value = "";
+
+
+
+    void Submit(Table table)
+    {
+        value = "<br><table class='editor-table'>";
+
+        for (int rows = 0; rows < table.Rows; rows++)
+        {
+            value += "<tr>";
+
+            for (int columns = 0; columns < table.Columns; columns++)
+            {
+                value += "<td>";
+                value += "</td>";
+            }
+
+            value += "</tr>";
+        }
+
+        value += "</table><br>";
+
+        updateValue__parentEvent.InvokeAsync(value);
+        ds!.Close(false);
+        
+
+    }
+
+
+    void Cancel()
+    {
+        ds.Close(false);
+    }
+
+}

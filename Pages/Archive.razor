@@ -1,0 +1,83 @@
+﻿@page "/archive/"
+
+@using ITDocumentation.Classes
+@using ITDocumentation.Data
+@inject ApplicationDbContext dbContext
+
+<h2>Documents Archived</h2>
+<br>
+<br>
+
+<GlobalSearchBar SetDictionary__ParentEvent="@SetDictionary"
+                 SetShowSearchResults__ParentEvent="@SetShowSearchResults"
+                 SetResults__ParentEvent="@SetResults"
+                          searchArchive=true />
+<br>
+
+<ArchiveTable 
+    results="@results"
+    archiveDocuments="@archiveDocuments"
+                  ReloadArchiveTable__ParentEvent="@ReloadArchiveTable"
+                  SetArchiveDocuments__ParentEvent="@SetArchiveDocuments"
+                  />
+
+@code {
+    List<SearchResult>? results = new List<SearchResult>();
+    List<Document>? archiveDocuments = new List<Document>();
+    TagsHelper tag = new TagsHelper();
+    JsonReader reader = new JsonReader();
+    List<KeyValuePair<int, string>>? tags = new List<KeyValuePair<int, string>>();
+    bool showSearchResults = true;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        archiveDocuments = dbContext.Document.Where(d => d.IsArchive == true).ToList();
+
+    }
+
+    void SetArchiveDocuments(List<Document> archiveDocuments)
+    {
+        this.archiveDocuments = archiveDocuments;
+    }
+
+
+
+    void SetDictionary(List<KeyValuePair<int, string>> tags)
+    {
+        this.tags = tags;
+
+    }
+
+    void ReloadArchiveTable()
+    {
+        archiveDocuments = dbContext.Document.Where(d => d.IsArchive == true).ToList();
+    
+    }
+
+    void SetResults(List<SearchResult> results)
+    {
+        archiveDocuments = new List<Document>();
+        foreach (var result in results)
+        {
+            if (dbContext.Document.Any(d => d.ID == result.ID))
+            {
+                archiveDocuments.Add(dbContext.Document.FirstOrDefault(d => d.ID == result.ID));
+
+
+            }
+           
+        }
+
+    }
+
+    void SetShowSearchResults(bool showSearchResults)
+    {
+        showSearchResults = true;
+
+    }
+
+}
+
+

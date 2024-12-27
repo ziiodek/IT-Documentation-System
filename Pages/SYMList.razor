@@ -1,0 +1,153 @@
+﻿@page "/SYMList/"
+@using ITDocumentation.Data
+@using System.Collections.Generic
+@using System.Threading;
+@inject ApplicationDbContext dbContext
+@inject NavigationManager NavigationManager
+@inject ProtectedSessionStorage ProtectedSessionStore
+@inject ProtectedSessionStorage ProtectedSessionStore
+
+<TitleContainer content="@title" />
+<br>
+
+@{
+    if (showAlert == true)
+    {
+        <AlertMessage content="@alertMessage"
+                      alertType="@alertType" />
+
+
+    }
+
+
+}
+
+<SYMTable SYMList="@symList"
+          UserName="@userName"
+          SetState__parentEvent="@SetState"
+          SetSYM__parentEvent="@SetSYM"
+          SetAlertMessage__ParentEvent="@SetAlertMessage"
+          SetAlertType__ParentEvent="@SetAlertType"
+          ShowAlert__ParentEvent="@ShowAlert"
+          SetSYMList__parentEvent="@SetSYMList"
+          show=@show/>
+@if (show == true)
+{
+    <br>
+    <button class="btn btn-primary" data-bs-toggle="collapse" href="#collapseDowntime" role="button" aria-expanded="false" aria-controls="collapseDowntime">ADD ENTRY</button>
+    <br>
+    <br>
+    <div class="collapse multi-collapse gray-container" id="collapseDowntime">
+        <h5>
+            Add new record
+        </h5>
+        <br>
+        <SYMForm SYM="@SYM"
+        state="@state"
+        SYMList="@symList"
+        SetState__parentEvent="@SetState"
+        SetSYM__parentEvent="@SetSYM"
+        SetSYMList__parentEvent="@SetSYMList"
+        SetAlertMessage__ParentEvent="@SetAlertMessage"
+        SetAlertType__ParentEvent="@SetAlertType"
+        ShowAlert__ParentEvent="@ShowAlert" />
+
+    </div>
+}
+
+@code {
+
+    string title = "SYM Master List";
+    string state = "create";
+    SYM SYM;
+    List<SYM> symList;
+    bool showAlert = false;
+    string alertMessage = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut in viverra lorem, et dapibus nibh. Vestibulum commodo interdum ex eget aliquam. Duis viverra massa at sapien varius, non ornare ligula porttitor.";
+    string alertType = "alert alert-primary";
+    private int currentTime;
+    string userName = "";
+    bool show = false;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        SYM = new SYM();
+
+        symList = dbContext.SYMS.ToList();
+
+        var result = await ProtectedSessionStore.GetAsync<string>("user");
+        if (result.Success)
+        {
+            userName = result.Value!.ToString();
+        }
+
+        var userDep = await ProtectedSessionStore.GetAsync<int>("subdepartment");
+        Console.WriteLine(userDep.Value);
+        if (userDep.Value == 65)
+        {
+            show = true;
+        }
+
+    }
+
+
+    void SetState(string state)
+    {
+        this.state = state;
+    }
+
+    void SetSYM(SYM SYM)
+    {
+        this.SYM = SYM;
+    }
+
+    public void SetSYMList(List<SYM> symList)
+    {
+        this.symList = symList;
+
+    }
+
+
+    async Task ShowAlert(bool showAlert)
+
+    {
+        this.showAlert = showAlert;
+        var timer = new Timer(new TimerCallback(_ =>
+     {
+         currentTime++;
+         InvokeAsync(() =>
+     {
+         StateHasChanged();
+         this.showAlert = false;
+     });
+     }), null, 5000, 5000);
+
+
+
+    }
+
+    async Task HideAlert()
+    {
+
+        await Task.Delay(2);
+        this.showAlert = false;
+
+
+    }
+
+
+
+    void SetAlertMessage(string alertMessage)
+    {
+        this.alertMessage = alertMessage;
+
+    }
+
+    void SetAlertType(string alertType)
+    {
+        this.alertType = alertType;
+
+
+    }
+
+}

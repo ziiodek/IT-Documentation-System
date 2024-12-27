@@ -1,0 +1,141 @@
+@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+@inject NavigationManager NavigationManager
+@implements UserFilter
+
+
+
+<UsersTableFilter nameFilter__parentEvent="@NameFilter"
+                  usernameFilter__parentEvent="@UserNameFilter"
+                  roleFilter__parentEvent="@RoleFilter"
+                  resetFilter__parentEvent="@ResetFilter"
+                  subdepartmentFilter__parentEvent="@SubdepartmentFilter" />
+<br>
+<RadzenDataGrid 
+                AllowPaging="true"
+                PageSize="20"
+                ColumnWidth="300px"
+                AllowColumnResize="true"
+                GridLines="Radzen.DataGridGridLines.Vertical"
+                Data="@userRoles"
+                TItem="UserRole">
+
+    <Columns>
+        <RadzenDataGridColumn TItem="UserRole" Property="UserRole.Name" Title="Name" Width="100%">
+            <EditTemplate Context="userRole">
+                <RadzenTextBox @bind-Value=@userRole.Name style="width:100%;" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="UserRole" Property="UserRole.Username" Title="username" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="UserRole" Property="UserRole.RoleName" Title="Role" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="UserRole" Title="Department" Width="100%">
+            <Template Context="userRole">
+                @{
+                    if (dbContext.UserSubdepartment.Any(s => s.Username == userRole.Username))
+                    {
+                        string departmentsNames = "";
+                        List<UserSubdepartment> userSubdepartments = dbContext.UserSubdepartment.Where(s => s.Username == userRole.Username).ToList();
+                        foreach (var userSubdepartment in userSubdepartments)
+                        {
+                            Subdepartment subdepartment = dbContext.Subdepartment.First(s => s.ID == userSubdepartment.SubdepartmentID);
+                            departmentsNames += subdepartment.Name + ",";
+
+
+                        }
+                        <p>@departmentsNames</p>
+                    }
+
+
+                }
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="UserRole" Context="userRole" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="156px">
+            <Template Context="userRole">
+                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditRow(userRole))" @onclick:stopPropagation="true">
+                </RadzenButton>
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+
+</RadzenDataGrid>
+
+
+@code {
+
+    [Parameter]
+    public IList<UserRole>? userRoles { get; set; }
+    [Parameter]
+    public int departmentID { get; set; }
+    RadzenDataGrid<UserRole> userRolesGrid = new RadzenDataGrid<UserRole>();
+    [Parameter]
+    public EventCallback<string> SetState__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<UserRole> SetUserRole__parentEvent { get; set; }
+
+    /*
+    protected override async Task OnInitializedAsync()
+    {
+
+
+    }*/
+
+    void setState__event()
+    {
+        SetState__parentEvent.InvokeAsync("create");
+    }
+
+
+
+    async Task EditRow(UserRole userRole)
+    {
+        await SetUserRole__parentEvent.InvokeAsync(userRole);
+        await SetState__parentEvent.InvokeAsync("update");
+    }
+
+}
+
+
+@functions {
+
+    public void NameFilter(string name)
+    {
+        userRoles = dbContext.UserRole.Where(u => u.Name!.Contains(name) && u.DepartmentID == departmentID).ToList();
+    }
+    public void UserNameFilter(string username)
+    {
+        userRoles = dbContext.UserRole.Where(u => u.Username!.Contains(username) && u.DepartmentID == departmentID).ToList();
+    }
+    public void RoleFilter(string roleName)
+    {
+        userRoles = dbContext.UserRole.Where(u => u.RoleName == roleName && u.DepartmentID == departmentID).ToList();
+    }
+
+    public void SubdepartmentFilter(string subdepartmentName)
+    {
+        Subdepartment subdepartment = dbContext.Subdepartment.First(s => s.Name == subdepartmentName && s.DepartmentID == departmentID);
+        List<UserSubdepartment> userSubdepartments = dbContext.UserSubdepartment.Where(s => s.SubdepartmentID == subdepartment.ID && s.DepartmentID == departmentID).ToList();
+        List<UserRole> userRoles = new List<UserRole>();
+        foreach (var userSubdepartment in userSubdepartments)
+        {
+            UserRole userRole = dbContext.UserRole.First(u => u.Username == userSubdepartment.Username);
+            userRoles.Add(userRole);
+        }
+
+        this.userRoles = userRoles;
+
+    }
+
+    public void ResetFilter()
+    {
+        userRoles = dbContext.UserRole.Where(u => u.DepartmentID == departmentID).ToList();
+
+    }
+
+
+}
+
+

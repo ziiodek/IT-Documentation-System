@@ -1,0 +1,286 @@
+@using ITDocumentation.Data
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navigationManager
+@using System.Text.Json.Nodes
+@inject ProtectedSessionStorage ProtectedSessionStore
+
+
+@{
+    if (pageTitle != "Manual Procedures")
+    {
+        <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Primary" Style="display:inline-block;" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditPage())" @onclick:stopPropagation="true">
+        </RadzenButton>
+        <CRUDTable subdepartmentID="@subdepartmentID">
+            @if (showDeleteButton == true)
+            {
+                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => DeletePage())" @onclick:stopPropagation="true">
+                </RadzenButton>
+            }
+        </CRUDTable>
+    }
+    else
+    {
+        
+            <RadzenButton Icon="upload_file" Text="Attach Document" ButtonStyle="ButtonStyle.Primary" Style="display:inline-block;" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditPage())" @onclick:stopPropagation="true">
+            </RadzenButton>
+        
+        
+
+    }
+
+
+}
+<br>
+
+@if(pageTitle != "Manual Procedures"){
+        
+
+    <PageContent title="@pageTitle"
+                 pageContent="@pageContent"
+                 ID="@pageID"
+                 type="@pageType" />
+    <br>
+    <br>
+}
+
+
+@{
+    if (pageTitle != "About")
+    {
+        
+    
+    <RegularTable subdeparmentID="@subdepartmentID">
+        <UploadDocument pageID="@pageID"
+                        parent="@pageType"
+                        ReloadDocumentsTable__parentEvent="@reloadDocumentsTable"
+                        pageState="view"
+                        documentsGrid="@documentsGrid"
+                        tmpDocuments="@tmpDocuments"
+                        tmpPendingDocuments="@tmpPendingDocuments"
+                        documents="@documents"
+                        DisplayPendingDocuments__parentEvent="@display__pendingDocuments" />
+    </RegularTable>
+    <br>
+    <DocumentsTable pageID="@pageID"
+                    parent="@pageType"
+                    documents="@documents"
+                    deleteDocumentDisabled="true"
+                    reloadDocumentsTable__parentEvent="@reloadDocumentsTable"
+                    pageState="view"
+                    />
+    }
+
+}
+
+<br>
+
+<br>
+<br>
+
+@code {
+    [Parameter]
+    public string pageType { get; set; }
+    [Parameter]
+    public int pageID { get; set; }
+    [Parameter]
+    public EventCallback<string> setState__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<SinglePage> setSinglePage__parentEvent { get; set; }
+    [Parameter]
+    public int subdepartmentID { get; set; }
+
+    List<Document> documents { get; set; }
+    List<PendingDocument> pendingDocuments { get; set; }
+    RadzenDataGrid<Document> documentsGrid;
+    List<Document> tmpDocuments;
+    List<PendingDocument> tmpPendingDocuments;
+    RadzenDataGrid<PendingDocument> pendingDocumentsGrid;
+    string pageTitle;
+    string pageContent;
+    DocumentsHandler documentsHandler;
+    SinglePagesHelper singlePageHelper;
+    bool showPendingDocuments = false;
+    string btnText;
+    bool showDeleteButton = true;
+    public RadzenUpload upload;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (pageType == "project")
+        {
+            pageType = "projectPage";
+
+        }
+
+        btnText = "Show Pending Documents";
+        loadContent();
+        initDocuments();
+        initPendingDocuments();
+        documentsHandler = new DocumentsHandler(dbContext);
+        singlePageHelper = new SinglePagesHelper(dbContext);
+        tmpDocuments = new List<Document>();
+        tmpPendingDocuments = new List<PendingDocument>();
+
+
+    }
+
+    void reloadDocumentsTable()
+    {
+        documents = new List<Document>();
+        documents = documentsHandler.initDocuments(documents, pageType, pageID);
+
+    }
+
+    void initDocuments()
+    {
+        IList<Document> documentsList = dbContext.Document.Where(d => d.Parent == pageType && d.IsArchive == false).ToList();
+        documents = new List<Document>();
+        foreach (var document in documentsList)
+        {
+            if (document.PageID == pageID)
+            {
+                documents.Add(document);
+            }
+        }
+
+    }
+
+    void initPendingDocuments()
+    {
+        IList<PendingDocument> pendingDocumentsList = dbContext.PendingDocument.Where(p => p.Parent == pageType).ToList();
+        pendingDocuments = new List<PendingDocument>();
+        foreach (var pendingDocument in pendingDocumentsList)
+        {
+            if (pendingDocument.PageID == pageID)
+            {
+                pendingDocuments.Add(pendingDocument);
+            }
+        }
+
+    }
+
+    void changeBtnText()
+    {
+        if (showPendingDocuments == true)
+        {
+            btnText = "Show Pending Documents";
+
+        }
+        else
+        {
+            btnText = "Show Documents";
+        }
+    }
+
+    void display__pendingDocuments()
+    {
+
+        changeBtnText();
+        if (showPendingDocuments == true)
+        {
+            showPendingDocuments = false;
+
+
+        }
+        else
+        {
+            showPendingDocuments = true;
+        }
+    }
+
+    void loadContent()
+    {
+        if (pageType == "singlePage")
+        {
+            SinglePage singlePage = dbContext.SinglePage.First(p => p.ID == pageID);
+            pageTitle = singlePage.Name;
+            pageContent = singlePage.PageContent;
+            List<string> pageList = LoadCorePagesList();
+
+            if (pageList.Contains(pageTitle))
+            {
+                showDeleteButton = false;
+
+            }
+
+
+        }
+        else if (pageType == "projectPage")
+        {
+            ProjectPage projectPage = dbContext.ProjectPage.First(p => p.ID == pageID);
+            pageTitle = projectPage.Name;
+            pageContent = projectPage.PageContent;
+        }
+
+    }
+
+    List<string> LoadCorePagesList()
+    {
+        JsonReader reader = new JsonReader();
+        List<string> pageList = new List<string>();
+        JsonNode tag = reader.getTags("CorePages.json");
+        foreach (var pageName in tag["Pages"].AsArray())
+        {
+            pageList.Add(pageName.ToString());
+        }
+        return pageList;
+
+    }
+    void EditPage()
+    {
+        if (pageType == "singlePage")
+        {
+            SinglePage singlePage = dbContext.SinglePage.First(p => p.ID == pageID);
+            Console.WriteLine(singlePage.SubdepartmentID);
+            setSinglePage__parentEvent.InvokeAsync(singlePage);
+            setState__parentEvent.InvokeAsync("update");
+        }
+        else if (pageType == "projectPage")
+        {
+            ProjectPage projectPage = dbContext.ProjectPage.First(p => p.ID == pageID);
+            setState__parentEvent.InvokeAsync("update");
+        }
+
+
+    }
+
+    async void DeletePage()
+    {
+        var result = await ProtectedSessionStore.GetAsync<string>("user");
+        if (pageType == "singlePage")
+        {
+            
+            SinglePage singlePage = dbContext.SinglePage.First(p => p.ID == pageID);
+            singlePageHelper.deleteSinglePage__menuItems(singlePage.ID);
+            //singlePageHelper!.DeleteJsonTagsNode(singlePage.ID, "singlePage");
+            documentsHandler.deleteAllDocuments("singlePage", pageID, result.Value);
+            //documentsHandler.deleteAllDocumentsApprovals("singlePage", pageID);
+            //documentsHandler.deleteAllPendingDocuments("singlePage", pageID);
+            dbContext.SinglePage.Remove(singlePage);
+            dbContext.SaveChanges();
+            string urlLocation = "/itdocs/singlePages/" + singlePage.SubdepartmentID;
+            navigationManager.NavigateTo(urlLocation, forceLoad: true);
+
+        }
+        else if (pageType == "projectPage")
+        {
+
+            ProjectPage projectPage = dbContext.ProjectPage.First(p => p.ID == pageID);
+            singlePageHelper!.DeleteJsonTagsNode(pageID, "project");
+            documentsHandler.deleteAllDocuments("projectPage", pageID, result.Value);
+            //documentsHandler.deleteAllDocumentsApprovals("project", pageID);
+            //documentsHandler.deleteAllPendingDocuments("project", pageID);
+            dbContext.ProjectPage.Remove(projectPage);
+            dbContext.SaveChanges();
+            setState__parentEvent.InvokeAsync("records");
+        }
+
+
+
+
+    }
+
+}
+
+

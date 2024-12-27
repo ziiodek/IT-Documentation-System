@@ -1,0 +1,29 @@
+@page "/subdepartment"
+
+<PageHeader content="@title" />
+
+@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+
+<Projects subdepartmentID="@subdepartmentID"
+          projects="@projects" />
+
+
+@code {
+    [Parameter]
+    public string title { get; set; }
+    [Parameter]
+    public int subdepartmentID { get; set; }
+    IList<Project> projects;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        projects = dbContext.Project.Where(p => p.SubdepartmentID == subdepartmentID).ToList();
+
+    }
+}
+
+

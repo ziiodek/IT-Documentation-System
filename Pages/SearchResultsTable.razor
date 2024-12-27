@@ -1,0 +1,207 @@
+﻿@using ITDocumentation.Classes
+@using ITDocumentation.Data
+@inject ApplicationDbContext dbContext
+@inject NavigationManager _navigationManager
+@using System.Text.Json.Nodes
+@inject IJSRuntime JS
+
+
+<RadzenDataGrid ColumnWidth="300px"
+                GridLines="Radzen.DataGridGridLines.Vertical"
+                AllowColumnResize="true"
+                AllowPaging="true"
+                PageSize="20"
+                Data="@results"
+                TItem="SearchResult"
+                AllowSorting="true"
+                AllowFiltering="true"
+                FilterMode="FilterMode.SimpleWithMenu"
+                FilterCaseSensitivity="@filterCaseSensitivity"
+                LogicalFilterOperator="@logicalFilterOperator">
+
+    <Columns>
+        <RadzenDataGridColumn TItem="SearchResult" Property="@nameof(SearchResult.Name)" Title="Name" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="SearchResult" Property="@nameof(SearchResult.Type)" Title="Content Type" Width="100%">
+            <Template Context="searchResult">
+                @{
+                    if (searchResult.Type == "singlePage")
+                    {
+                        <span>Page</span>
+                    }
+                    else
+                    {
+                        <span>@searchResult.Type</span>
+                    }
+                }
+
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="SearchResult" Property="@nameof(SearchResult.Status)" Title="Status" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="SearchResult" Property="@nameof(SearchResult.DateTime)" Title="Creation Date" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="SearchResult" Property="@nameof(SearchResult.AuthorName)" Title="Author" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="SearchResult" Property="@nameof(SearchResult.ApprovedBy)" Title="Approved By" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="SearchResult" Property="@nameof(SearchResult.ModifiedBy)" Title="Modified By" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="SearchResult" Property="@nameof(SearchResult.ModifiedDate)" Title="Modified Date" Width="100%">
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="SearchResult" Context="searchResult" TextAlign="TextAlign.Right" Width="156px">
+            <Template Context="searchResult">
+                @{
+                    
+                    if (searchResult.Type == "document")
+                    {
+                        <RadzenButton Icon="file_download" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => DownloadRow(searchResult))" @onclick:stopPropagation="true">
+                        </RadzenButton>
+
+                    }
+                    else
+                    {
+                        <RadzenButton Icon="visibility" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => ViewRow(searchResult))" @onclick:stopPropagation="true">
+                        </RadzenButton>
+                    
+                    }
+
+                }
+
+             
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+
+</RadzenDataGrid>
+
+<script suppress-error="BL9992">
+    window.triggerFileDownload = (fileName, url) => {
+        const anchorElement = document.createElement('a');
+        anchorElement.href = url;
+        anchorElement.download = fileName ?? '';
+        anchorElement.click();
+        anchorElement.remove();
+    }
+</script>
+
+
+@code {
+        [Parameter]
+        public List<SearchResult>? results { get; set; }
+        TagsHelper tag = new TagsHelper();
+        JsonReader reader = new JsonReader();
+    FilterCaseSensitivity filterCaseSensitivity = FilterCaseSensitivity.CaseInsensitive;
+    LogicalFilterOperator logicalFilterOperator = LogicalFilterOperator.Or;
+
+        void ViewRow(SearchResult searchResult)
+        {
+            string url = "#";
+            if (searchResult.Type == "projectPage")
+            {
+                ProjectPage projectPage = dbContext.ProjectPage.First(p => p.ID == searchResult.ID);
+                Project project = dbContext.Project.First(p=>p.ID == projectPage.ProjectID);
+                url = "/itdocs/projects/view/" + project.SubdepartmentID.ToString() + "/" + project.ID.ToString();
+
+            }
+            else if (searchResult.Type == "document")
+            {
+
+
+
+            }
+            else
+            {
+                switch(searchResult.Name)
+                {
+                    case "SYM Master List":
+                        url = "/itdocs/SYMList";
+                        break;
+
+                    case "Server List":
+                    url = "/itdocs/serverList";
+                        break;
+
+            }
+           
+
+        }
+        _navigationManager.NavigateTo(url, forceLoad: true);
+
+    }
+
+    string getDocumentTags(int documentID)
+    {
+        Document document = dbContext.Document.First(d => d.ID == documentID);
+
+        string tagString = "";
+        JsonNode contentTags = reader.getTags("ContentTags.json");
+        JsonObject jsonObj = contentTags.AsObject();
+        JsonNode itemTags = contentTags[document.PageID.ToString()]!;
+
+        if (jsonObj.ContainsKey(document.PageID.ToString()))
+        {
+            if (itemTags["Type"].ToString() == document.Parent)
+            {
+
+                foreach (var tagName in contentTags[document.PageID.ToString()]["Tags"].AsArray())
+                {
+
+                    tagString += tagName.ToString() + ",";
+                }
+
+            }
+
+
+        }
+
+        return tagString;
+    }
+
+    string getContentTags(int ID, string type)
+    {
+
+        string tagString = "";
+        JsonNode contentTags = reader.getTags("ContentTags.json");
+        JsonObject jsonObj = contentTags.AsObject();
+        JsonNode itemTags = contentTags[ID.ToString()]!;
+
+        if (jsonObj.ContainsKey(ID.ToString()))
+        {
+            if (itemTags["Type"].ToString() == type)
+            {
+
+                foreach (var tagName in contentTags[ID.ToString()]["Tags"].AsArray())
+                {
+
+                    tagString += tagName.ToString() + ",";
+                }
+
+            }
+
+
+        }
+
+        return tagString;
+
+    }
+
+    async Task DownloadRow(SearchResult result)
+    {
+        if (dbContext.Document.Any(d => d.ID == result.ID))
+        {
+            Document document = dbContext.Document.First(d => d.ID == result.ID);
+            string directory = "/itdocs/DocumentsUploaded/" + document.Parent + "/" + document.PageID;
+            var fileName = document.Name;
+            var fileURL = directory + "/" + fileName;
+            await JS.InvokeVoidAsync("triggerFileDownload", fileName, fileURL);
+        
+        }
+
+        
+
+    }
+   
+
+}

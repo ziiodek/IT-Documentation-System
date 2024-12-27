@@ -1,0 +1,400 @@
+@page "/projects/{state}/{subdepartmentID:int}/{project_ID:int}"
+
+@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+@inject ProtectedSessionStorage ProtectedSessionStore
+@using System.Text.Json
+@using System.Text.Json.Nodes
+
+
+@{
+    if (pageState == "records")
+    {
+        <RadzenTemplateForm Data="@project" Submit="@((Project args) => { Submit(args); })">
+            <div class="row">
+                <div class="col-sm-2 ">
+                    <RadzenLabel Text="*Project Name" />
+                </div>
+                <div class="col-sm-8">
+                    @if(pageState == "view" || state == "view")
+                    {
+                        <RadzenTextBox @bind-Value=@project!.Name style="width:100%;" Disabled="true" />
+                    }else{
+                        <RadzenTextBox @bind-Value=@project!.Name style="width:100%;" Name="projectName" Disabled="false" />
+                        <br>
+                        <RadzenRequiredValidator Component="projectName" Text="Project name is required" Popup="true" Style="position: absolute" />
+
+                    }
+                    
+                </div>
+            </div>
+            
+            @if(state == "view"){
+                
+                <br>
+                <h4>Pages attached to this project</h4>
+                <br>
+                <ProjectPagesTable projectPages="@projectPages"
+                                   SetState__parentEvent="@SetPageState__event"
+                                   SetProjectPage__parentEvent="@SetProjectPage"
+                                   subdepartmentID="@subdepartmentID"
+                                   SetAlertMessage__ParentEvent="@SetAlertMessage__ParentEvent"
+                                   SetAlertType__ParentEvent="@SetAlertType__ParentEvent"
+                                   ShowAlert__ParentEvent="@ShowAlert__ParentEvent"
+                                   ReloadProjectPages__ParentEvent="@RealoadProjectPages"
+                                   state="view" />
+
+            
+            }
+
+
+
+            @if (state == "update" && pageState == "records")
+            {
+
+                <br>
+                <br>
+                <h4>Pages attached to this project</h4>
+                <br>
+
+                <CRUDTable subdepartmentID="@subdepartmentID" action="add">
+                    <RadzenButton Icon="add_circle_outline" Class="mt-2 mb-4" Text="Create Page" Click="@(args => CreatePage())" />
+                </CRUDTable>
+                <ProjectPagesTable projectPages="@projectPages"
+                                   SetState__parentEvent="@SetPageState__event"
+                                   SetProjectPage__parentEvent="@SetProjectPage"
+                                   subdepartmentID="@subdepartmentID"
+                                   SetAlertMessage__ParentEvent="@SetAlertMessage__ParentEvent"
+                                   SetAlertType__ParentEvent="@SetAlertType__ParentEvent"
+                                   ShowAlert__ParentEvent="@ShowAlert__ParentEvent"
+                                   ReloadProjectPages__ParentEvent="@RealoadProjectPages"
+                                  
+                                   />
+            }
+
+            <br>
+            <br>
+            <br>
+            <div class="row justify-content-center">
+                <div class="col-md-12 d-flex align-items-end justify-content-left" style="margin-top: 16px;">
+                    <CRUDTable subdepartmentID="@subdepartmentID" action="edit">
+                        @{
+                            if (state != "view")
+                            {
+
+                                <RadzenButton ButtonType="ButtonType.Submit" Icon="save" Text="Save" />
+                            }
+                        }
+
+
+                        @if (project_ID <= 0)
+                        {
+                            <RadzenButton Icon="cancel" style="display: inline-block; margin-left: 10px;" Text="Cancel" Click="@Cancel" />
+                        
+                        }
+
+
+                        
+                    </CRUDTable>
+
+                </div>
+            </div>
+        </RadzenTemplateForm>
+    }
+
+
+
+    if (pageState == "create")
+    {
+        <ProjectPageForm projectID="@project!.ID"
+                         SetState__ParentEvent="@SetPageState__event"
+                         projectPage="@projectPage"
+                         state="create"
+                         subdepartmentID="@subdepartmentID"
+                         SetAlertMessage__ParentEvent="@SetAlertMessage__ParentEvent"
+                         SetAlertType__ParentEvent="@SetAlertType__ParentEvent"
+                         ShowAlert__ParentEvent="@ShowAlert__ParentEvent" 
+                         SetProjectPage__parentEvent="@SetProjectPage"
+                         ReloadPage__ParentEvent="@ReloadPage" />
+    }
+
+    if (pageState == "update")
+    {
+        <ProjectPageForm projectID="@project!.ID"
+                         SetState__ParentEvent="@SetPageState__event"
+                         projectPage="@projectPage"
+                         state="update"
+                         subdepartmentID="@subdepartmentID"
+                         SetAlertMessage__ParentEvent="@SetAlertMessage__ParentEvent"
+                         SetAlertType__ParentEvent="@SetAlertType__ParentEvent"
+                         ShowAlert__ParentEvent="@ShowAlert__ParentEvent"
+                         SetProjectPage__parentEvent="@SetProjectPage"
+                         ReloadPage__ParentEvent="@ReloadPage" />
+    }
+
+    if (pageState == "view")
+    {
+        <PageView pageType="project"
+                  pageID="@projectPage!.ID"
+                  setState__parentEvent="@SetPageState__event"
+                  subdepartmentID="@subdepartmentID" />
+    }
+
+
+}
+
+
+
+
+
+
+@code {
+
+    [Parameter]
+    public EventCallback<string> SetState__parentEvent { get; set; }
+    [Parameter]
+    public int subdepartmentID { get; set; }
+    [Parameter]
+    public Project project { get; set; }
+    [Parameter]
+    public int project_ID { get; set; }
+    [Parameter]
+    public string state { get; set; }
+    string pageState = "records";
+    public IList<ProjectPage> projectPages { get; set; }
+    ProjectPage projectPage;
+    string userName = "";
+    bool inputDisabled = true;
+    SinglePagesHelper singlePagesHelper;
+    List<string> tagList = new List<string>();
+    JsonReader reader;
+    List<string> tag;
+    string addTag1;
+    string addTag2;
+    string addTag3;
+    string addTag4;
+    [Parameter]
+    public EventCallback<bool> ShowAlert__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertMessage__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertType__ParentEvent { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (project_ID>0)
+        {
+            project = dbContext.Project.First(p => p.ID == project_ID);
+            state = "view";
+            pageState = "records";
+        }
+
+
+
+        singlePagesHelper = new SinglePagesHelper(dbContext);
+        if (state == "update" || state == "view")
+        {
+            projectPages = dbContext.ProjectPage.Where(p => p.ProjectID == this.project.ID).ToList();
+        }
+
+        var result = await ProtectedSessionStore.GetAsync<string>("user");
+        if (result.Success)
+        {
+            userName = result.Value!.ToUpper();
+        }
+
+        if (pageState == "view")
+        {
+            inputDisabled = true;
+
+        }
+        //InitTagList();
+
+    }
+
+
+    async Task InitTagList()
+    {
+        tagList = new List<string>();
+        reader = new JsonReader();
+        JsonNode contentTags = reader.getTags("ContentTags.json");
+        JsonObject jsonObj = contentTags.AsObject();
+        JsonNode itemTags = contentTags[project.ID.ToString()];
+        if (jsonObj.ContainsKey(project.ID.ToString()))
+        {
+            if (itemTags["Type"].ToString() == "Project")
+            {
+
+                foreach (var tagName in contentTags[project.ID.ToString()]["Tags"].AsArray())
+                {
+                   
+                    tagList.Add(tagName!.ToString());
+                }
+
+            }
+
+
+        }
+
+    }
+
+    void ReloadPage()
+    {
+
+        projectPage = dbContext.ProjectPage.First(p => p.ID == projectPage.ID);
+    }
+
+
+    void ResetTags()
+    {
+
+        tag = new List<string>();
+        addTag1 = "";
+        addTag2 = "";
+        addTag3 = "";
+        addTag4 = "";
+
+    }
+
+
+    void Submit(Project project)
+    {
+        this.project = project;
+        this.project.SubdepartmentID = subdepartmentID;
+
+        if (state == "create")
+        {
+            Create(project);
+            ShowAlert__ParentEvent.InvokeAsync(true);
+            SetAlertMessage__ParentEvent.InvokeAsync("Record Succesfully created");
+            SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+        }
+        else
+        {
+            Update(project);
+            ShowAlert__ParentEvent.InvokeAsync(true);
+            SetAlertMessage__ParentEvent.InvokeAsync("Record Succesfully updated");
+            SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+        }
+        //StoreAdditionalTags();
+        //singlePagesHelper.storeTags(this.project.ID, "Project", tag, "ContentTags.json");
+    }
+
+    void Create(Project project)
+    {
+        this.project = project;
+        this.project.AuthorName = userName;
+        this.project.DateTime = DateTime.Now;
+        this.project.Name = project.Name;
+        this.project.SubdepartmentID = subdepartmentID;
+        dbContext.Project.Add(project);
+        dbContext.SaveChanges();
+        SetState__parentEvent.InvokeAsync("records");
+
+    }
+
+    void Update(Project project)
+    {
+        project.ModifiedBy = userName;
+        project.ModifiedDate = DateTime.Now;
+        Project prevProject = dbContext.Project.First(p => p.ID == project.ID);
+        dbContext.Entry(prevProject).CurrentValues.SetValues(project);
+        dbContext.SaveChanges();
+        SetState__parentEvent.InvokeAsync("records");
+
+    }
+
+    void Cancel()
+    {
+        project = new Project();
+        SetState__parentEvent.InvokeAsync("records");
+
+    }
+
+    void CreatePage()
+    {
+        pageState = "create";
+        projectPage = new ProjectPage();
+
+    }
+
+    void StoreAdditionalTags()
+    {
+        if (addTag1 != "")
+        {
+            tag!.Add(addTag1!);
+        }
+
+        if (addTag2 != "")
+        {
+            tag!.Add(addTag2!);
+        }
+
+        if (addTag3 != "")
+        {
+            tag!.Add(addTag3!);
+        }
+
+        if (addTag4 != "")
+        {
+            tag!.Add(addTag4!);
+        }
+
+
+
+    }
+
+
+    void RealoadProjectPages()
+
+    {
+
+        projectPages = dbContext.ProjectPage.Where(p => p.ProjectID == this.project.ID).ToList();
+
+    }
+
+    void SetPageState__event(string pageState)
+    {
+        projectPages = dbContext.ProjectPage.Where(p => p.ProjectID == this.project.ID).ToList();
+        this.pageState = pageState;
+
+    }
+
+    void SetProjectPage(ProjectPage projectPage)
+    {
+        this.projectPage = projectPage;
+    }
+
+    void SetTagList(List<string> tag)
+    {
+        this.tag = tag;
+    }
+
+    void SetTag1(string tag)
+    {
+        addTag1 = tag;
+
+    }
+
+    void SetTag2(string tag)
+    {
+        addTag2 = tag;
+
+    }
+
+    void SetTag3(string tag)
+    {
+        addTag3 = tag;
+
+    }
+
+    void SetTag4(string tag)
+    {
+        addTag4 = tag;
+
+    }
+
+}

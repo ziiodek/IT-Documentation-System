@@ -1,0 +1,388 @@
+@using ITDocumentation.Data
+@using ITDocumentation.Classes
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JS
+@implements Filter
+@using System.Text.Json.Nodes
+@inject DialogService DialogService
+@inject ProtectedSessionStorage ProtectedSessionStore
+
+
+@{
+    if (showAlert == true)
+    {
+        <DocumentsAlert alertType="@alertType"
+                        content="@alertContent"
+                        HideAlert__ParentEvent="@HideAlert" />
+
+
+    }
+}
+
+
+<h5>Documents Attached to this page</h5>
+<br>
+<RadzenDataGrid AllowPaging="false"
+                ColumnWidth="300px"
+                AllowColumnResize="true"
+                GridLines="Radzen.DataGridGridLines.Vertical"
+                Data="@documents" TItem="Document"
+                AllowSorting="true"
+                AllowFiltering="true"
+                Style="height:800px; overflow:scroll;"
+                FilterMode="FilterMode.SimpleWithMenu"
+                FilterCaseSensitivity="@filterCaseSensitivity"
+                LogicalFilterOperator="@logicalFilterOperator">
+
+    <Columns>
+        <RadzenDataGridColumn TItem="Document" Property="@nameof(Document.Name)" Title="Document Name" Width="100%">
+            <EditTemplate Context="document">
+                <RadzenTextBox @bind-Value=@document.Name style="width:100%;" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Document" Property="@nameof(Document.AuthorName)" Title="Author Name" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Document" Property="@nameof(Document.DateTime)" Title="Creation Date" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Document" Property="@nameof(Document.Status)" Title="Status" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Document" Property="@nameof(Document.ApprovedBy)" Title="Approved By" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="Document" Context="Document" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Width="156px">
+            <Template Context="document">
+              
+                        <div class="row">
+                            <div class="col-3">
+                       
+                        <RadzenButton Icon="file_download" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => DownloadRow(document))" @onclick:stopPropagation="true">
+                        </RadzenButton>
+                           </div>
+                           <div class="col-1">
+                        <CRUDTable subdepartmentID="@subdepartmentID">
+                            @{
+                                if (document.Status.ToLower().Contains("pending"))
+                                {
+                                    <RadzenButton ButtonStyle="ButtonStyle.Success" Icon="done" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => ApproveRow(document))" @onclick:stopPropagation="true">
+                                    </RadzenButton>
+
+                                }
+                            }
+
+                            <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Visible=@deleteDocumentDisabled Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => ShowDialog(document))" @onclick:stopPropagation="true">
+                            </RadzenButton>
+                        </CRUDTable>
+                    </div>
+                </div>
+
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+
+<script suppress-error="BL9992">
+    window.triggerFileDownload = (fileName, url) => {
+    const anchorElement = document.createElement('a');
+        anchorElement.href = url;
+        anchorElement.download = fileName ?? '';
+        anchorElement.click();
+        anchorElement.remove();
+    }
+</script>
+
+
+@code {
+
+    [Parameter]
+    public List<Document> documents { get; set; }
+    [Parameter]
+    public List<Document> tmpDocuments { get; set; }
+    [Parameter]
+    public int pageID { get; set; }
+    [Parameter]
+    public string parent { get; set; }
+    [Parameter]
+    public RadzenDataGrid<Document> documentsGrid { get; set; }
+    [Parameter]
+    public EventCallback reloadDocumentsTable__parentEvent { get; set; }
+    [Parameter]
+    public bool deleteDocumentDisabled { get; set; }
+    [Parameter]
+    public int subdepartmentID { get; set; }
+    [Parameter]
+    public EventCallback<string> SetDocumentState__ParentEvent { get; set;}
+    [Parameter]
+    public EventCallback<int> SetDocumentID__ParentEvent { get; set; }
+    [Parameter]
+    public string pageState { get; set; }
+    FilterCaseSensitivity filterCaseSensitivity = FilterCaseSensitivity.CaseInsensitive;
+    LogicalFilterOperator logicalFilterOperator = LogicalFilterOperator.Or;
+
+    string directory = "";
+    JsonReader reader = new JsonReader();
+    bool editDocumentTags = false;
+    DocumentsHandler documentHandler;
+    string alertContent = "";
+    string alertType = "alert alert-danger";
+    bool showAlert = false;
+    string userName = "";
+    string authorEmail = "";
+    string managerName = "";
+    string managerEmail = "";
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (pageID == -1)
+        {
+            directory = Directory.GetCurrentDirectory() + "/wwwroot/DocumentsUploaded/tmp" + parent;
+        }
+        else
+        {
+            directory = Directory.GetCurrentDirectory() + "/wwwroot/DocumentsUploaded/" + parent + "/" + pageID;
+        }
+
+        documentHandler = new DocumentsHandler(dbContext);
+
+
+        var result = await ProtectedSessionStore.GetAsync<string>("username");
+        if (result.Success)
+        {
+            userName = result.Value.ToUpper();
+            authorEmail = userName + "@firstlightfcu.org";
+        }
+
+        var subdepartment = await ProtectedSessionStore.GetAsync<int>("subdepartment");
+        if (subdepartment.Success)
+        {
+            int subdepartmentID = subdepartment.Value;
+            List<UserSubdepartment> usersSubdepartment = dbContext.UserSubdepartment.Where(s => s.SubdepartmentID == subdepartmentID).ToList();
+
+            foreach (var userSubdepartment in usersSubdepartment)
+            {
+
+                UserRole userRole = dbContext.UserRole.First(u => u.Username == userSubdepartment.Username);
+                if (userRole.RoleName == "ADMIN")
+                {
+                    managerName = userRole.Name;
+                    managerEmail = userSubdepartment.Username + "@firstlightfcu.org";
+
+                }
+
+            }
+
+
+        }
+
+    }
+
+    void deleteDocumentInDirectory(string documentName)
+    {
+        if (pageID == -1)
+        {
+            directory = Directory.GetCurrentDirectory() + @"\wwwroot\DocumentsUploaded\tmp" + parent;
+        }
+        else
+        {
+            directory = Directory.GetCurrentDirectory() + @"\wwwroot/DocumentsUploaded\" + parent + @"\" + pageID;
+        }
+
+        if (Directory.Exists(directory))
+        {
+            foreach (var file in Directory.GetFiles(directory))
+
+            {
+
+                if (File.Exists(file))
+                {
+                    var fileName = Path.GetFileName(file);
+
+                    if (fileName == documentName)
+                    {
+                        try
+                        {
+                            System.IO.File.Delete(file);
+                        }
+                        catch
+                        {
+
+                        }
+                    }
+                }
+            }
+
+
+        }
+
+
+    }
+
+
+
+    void LoadData(LoadDataArgs args)
+    {
+        var query = dbContext.Document.AsQueryable();
+    }
+
+
+    async Task DownloadRow(Document document)
+    {
+
+        directory = "/itdocs/DocumentsUploaded/" + parent + "/" + pageID;
+        var fileName = document.Name;
+        var fileURL = directory + "/"+fileName;
+        await JS.InvokeVoidAsync("triggerFileDownload", fileName, fileURL);
+
+    }
+
+    async Task EditRow(Document document)
+    {
+
+        await SetDocumentState__ParentEvent.InvokeAsync("update");
+        await SetDocumentID__ParentEvent.InvokeAsync(document.ID);
+
+    }
+    void HideAlert()
+    {
+
+        this.showAlert = false;
+    }
+
+    string getDocumentTags(int documentID)
+    {
+        string tagString = "";
+        JsonNode documentTags = reader.getTags("DocumentTags.json");
+        JsonObject jsonObj = documentTags.AsObject();
+        if (jsonObj.ContainsKey(documentID.ToString()))
+        {
+            if (documentTags[documentID.ToString()]!.AsArray().Count > 0)
+            {
+
+                foreach (var tagName in documentTags[documentID.ToString()]!.AsArray())
+                {
+                    tagString += tagName!.ToString()+",";
+                }
+            }
+        }
+
+        return tagString;
+    }
+    async void DeleteRow(Document document, DialogService ds)
+    {
+        var result = await ProtectedSessionStore.GetAsync<string>("user");
+        document.IsArchive = true;
+        document.ArchiveTime = DateTime.Now;
+        document.ArchiveBy = result.Value.ToUpper();
+        Document prevDocument = dbContext.Document.First(d => d.ID == document.ID);
+        dbContext.Entry(prevDocument).CurrentValues.SetValues(document);
+        dbContext.SaveChanges();
+        //documentHandler.DeleteJsonTagsNode(document.ID, "Document");
+        reloadDocumentsTable__parentEvent.InvokeAsync();
+        ds.Close(false);
+        showAlert = true;
+        alertType = "alert alert-danger";
+        alertContent = "Document deleted successfuly";
+        Email email = new Email();
+        email.documentNotApprovedMessage(document.AuthorName, managerName, authorEmail, managerEmail, document.Name);
+    }
+
+
+    void DeleteRowPermanent(Document document, DialogService ds)
+    {
+
+        if (documents!.Contains(document))
+        {
+
+            if (dbContext.Document.Any(d => d.ID == document.ID))
+            {
+                dbContext.Document.Remove(document);
+                dbContext.SaveChanges();
+            }
+
+            documents.Remove(document);
+            reloadDocumentsTable__parentEvent.InvokeAsync();
+            deleteDocumentInDirectory(document.Name!);
+        }
+        else
+        {
+
+            reloadDocumentsTable__parentEvent.InvokeAsync();
+        }
+
+        ds.Close(false);
+    }
+
+    async Task ShowDialog(Document document)
+    {
+
+        var result = await DialogService.OpenAsync("Confirmation", ds =>
+    @<RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <p>Are you sure you want to delete the record?</p>
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenButton Text="Ok" Click="() => DeleteRow(document,ds)" Style="width: 80px;" />
+                <RadzenButton Text="Cancel" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Light" />
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenStack>
+        );
+
+    }
+
+
+}
+
+
+@functions {
+    public void NameFilter(string name)
+    {
+        documents = dbContext.Document.Where(d => d.Name!.Contains(name) && d.PageID == pageID && d.Parent == parent).ToList();
+    }
+
+    public void AuthorFilter(string authorName)
+    {
+        documents = dbContext.Document.Where(d => d.AuthorName!.Contains(authorName) && d.PageID == pageID && d.Parent == parent).ToList();
+    }
+
+    public void DateFilter(DateTime? date)
+    {
+        List<Document> tmpDocuments = dbContext.Document.Where(d => d.PageID == pageID && d.Parent == parent).ToList();
+        List<Document> dateDocuments = new List<Document>();
+        foreach (var document in tmpDocuments)
+        {
+            DateTime documentDate = document.DateTime;
+            DateTime d = date.HasValue ? date.Value : DateTime.Now;
+            if (documentDate.ToString().Contains(d.ToString("M/d/yyyy")))
+            {
+                dateDocuments.Add(document);
+            }
+        }
+        documents = dateDocuments;
+
+    }
+
+    public void ResetFilter()
+    {
+        documents = dbContext.Document.Where(d => d.PageID == pageID && d.Parent == parent).ToList();
+
+    }
+
+    async void ApproveRow(Document document)
+    {
+        var result = await ProtectedSessionStore.GetAsync<string>("user");
+        document.Status = "Approved";
+        document.ApprovedBy = result.Value.ToUpper();
+        Document prevDocument = dbContext.Document.First(d => d.ID == document.ID);
+        dbContext.Entry(prevDocument).CurrentValues.SetValues(document);
+        dbContext.SaveChanges();
+        reloadDocumentsTable__parentEvent.InvokeAsync();
+
+        Email email = new Email();
+        email.documentApprovedMessage(document.AuthorName, managerName, authorEmail, managerEmail, document.Name);
+
+    }
+
+}

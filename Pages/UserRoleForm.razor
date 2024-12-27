@@ -1,0 +1,300 @@
+@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+
+
+<RadzenTemplateForm Data="@userRole" Submit="@((UserRole args) => { Submit(args); })">
+    <div class="row">
+        <div class="col-sm-2 ">
+            <RadzenLabel Text="Name" />
+        </div>
+        <div class="col-sm-8">
+            <RadzenTextBox @bind-Value=@userRole.Name style="width:100%;" Disabled="true" />
+        </div>
+    </div>
+    <br>
+    <div class="row">
+        <div class="col-sm-2 ">
+            <RadzenLabel Text="Username" />
+        </div>
+        <div class="col-sm-8">
+            <RadzenTextBox @bind-Value=@userRole.Username style="width:100%;" Disabled="true" />
+        </div>
+    </div>
+    <br>
+    <div class="row">
+        <div class="col-sm-2 ">
+            <RadzenLabel Text="Role" />
+        </div>
+        <div class="col-sm-8">
+            <RadzenDropDown 
+                            TValue="string"
+            @bind-Value="@userRole.RoleName"
+                            Data="@(roles!.Select(r => r.RoleName).Distinct())"
+                            Change=@(args => OnChangeRole(args)) />
+        </div>
+    </div>
+    <br>
+    <div class="row">
+        <div class="col-sm-2 ">
+            <RadzenLabel Text="Department" />
+        </div>
+        <div class="col-sm-8">
+            @{
+
+                if (isAdmin == true)
+                {
+
+                    <RadzenDropDown AllowClear="true"
+                                    Chips=true
+                                    Multiple="true"
+                    @bind-Value=@assignedDepartments
+                                    Data="@(subdepartments.Select(s => s.Name).Distinct())"
+                                    />
+
+                }
+                else
+                {
+
+                    <RadzenDropDown TValue="string"
+                    @bind-Value="@subdepartmentName"
+                                    Data="@(subdepartments.Select(s => s.Name).Distinct())"
+                                    Change=@(args => OnChangeDepartment(args)) />
+
+                }
+
+            }
+
+        </div>
+    </div>
+
+
+    <br>
+    <br>
+    <div class="row justify-content-center">
+        <div class="col-md-12 d-flex align-items-end justify-content-left" style="margin-top: 16px;">
+            <RadzenButton ButtonType="ButtonType.Submit" Icon="save" Text="Save" />
+            <RadzenButton Icon="cancel" style="display: inline-block; margin-left: 10px;" Text="Cancel" Click="@Cancel" />
+        </div>
+    </div>
+</RadzenTemplateForm>
+
+
+@code {
+
+    [Parameter]
+    public EventCallback<string> setState__parentEvent { get; set; }
+    [Parameter]
+    public int departmentID { get; set; }
+    [Parameter]
+    public UserRole userRole { get; set; }
+    [Parameter]
+    public EventCallback<bool> ShowAlert__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertMessage__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertType__ParentEvent { get; set; }
+
+
+    List<string> assignedDepartments = new List<string>();
+    bool isAdmin = false;
+    IEnumerable<Role> roles;
+    IEnumerable<Subdepartment> subdepartments;
+    UserSubdepartment userSubdepartment;
+    string? subdepartmentName;
+
+
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+
+        if (userRole.RoleName == "ADMIN" || userRole.RoleName == "SUPERADMIN")
+        {
+            isAdmin = true;
+            InitDepartments();
+        }
+        roles = dbContext.Role.ToList();
+        subdepartments = dbContext.Subdepartment.ToList();
+        userSubdepartment = new UserSubdepartment();
+        if (dbContext.UserSubdepartment.Any(s => s.Username == userRole.Username))
+        {
+            UserSubdepartment userSubdepartment = dbContext.UserSubdepartment.First(s => s.Username == userRole.Username);
+            Subdepartment subdepartment = dbContext.Subdepartment.First(s => s.ID == userSubdepartment.SubdepartmentID);
+            subdepartmentName = subdepartment.Name!;
+        }
+
+
+    }
+
+
+    void OnChangeDepartment(Object value)
+    {
+        Subdepartment subdepartment = dbContext.Subdepartment.First(s => s.Name == subdepartmentName);
+        userSubdepartment.Username = userRole.Username;
+        userSubdepartment.SubdepartmentID = subdepartment.ID;
+        userSubdepartment.DepartmentID = subdepartment.DepartmentID;
+    }
+
+
+    void OnChangeRole(Object value)
+    {
+        if (value.ToString() == "ADMIN")
+        {
+            isAdmin = true;
+            InitDepartments();
+
+        }
+        else
+        {
+            isAdmin = false;
+
+        }
+
+
+    }
+
+    void Submit(UserRole userRole)
+    {
+        this.userRole = userRole;
+        Update(userRole);
+        if (isAdmin == true)
+        {
+            AssignDepartments();
+        }
+        else
+        {
+            if (subdepartmentName != null)
+            {
+
+                ClearUserDepartments();
+                Subdepartment subdepartment = dbContext.Subdepartment.First(s => s.Name == subdepartmentName);
+                if (dbContext.UserSubdepartment.Any(s => s.Username == userRole.Username))
+                {
+                    UserSubdepartment userSubdepartment = dbContext.UserSubdepartment.First(s => s.Username == userRole.Username);
+                    userSubdepartment.SubdepartmentID = subdepartment.ID;
+                    UpdateUserSubdepartment(userSubdepartment);
+                }
+                else
+                {
+                    UserSubdepartment userSubdepartment = new UserSubdepartment();
+                    userSubdepartment.Username = userRole.Username;
+                    userSubdepartment.SubdepartmentID = subdepartment.ID;
+                    userSubdepartment.DepartmentID = userRole.DepartmentID;
+                    CreateUserSubdepartment(userSubdepartment);
+                }
+
+
+
+
+
+
+
+            }
+        
+        
+        }
+
+    }
+
+    void RemoveAssigned()
+    {
+        List<UserSubdepartment> userSubdepartments = dbContext.UserSubdepartment.Where(u => u.Username == userRole!.Username).ToList();
+        foreach (var subdepartment in userSubdepartments)
+        {
+            dbContext.Remove(subdepartment);
+            dbContext.SaveChanges();
+
+        }
+
+    }
+
+
+    void ClearUserDepartments()
+
+    {
+        if (isAdmin == false)
+        {
+            List<UserSubdepartment> userSubdepartments = dbContext.UserSubdepartment.Where(u => u.Username == userRole!.Username).ToList();
+            foreach (var subdepartment in userSubdepartments)
+            {
+                dbContext.Remove(subdepartment);
+                dbContext.SaveChanges();
+
+            }
+        }
+    }
+
+    void AssignDepartments()
+    {
+
+        RemoveAssigned();
+        foreach (var uSubdepartment in assignedDepartments)
+        {
+            Console.WriteLine(uSubdepartment);
+            Subdepartment subdepartment = dbContext.Subdepartment.First(s => s.Name == uSubdepartment);
+            UserSubdepartment userSubdepartment = new UserSubdepartment();
+            userSubdepartment.SubdepartmentID = subdepartment.ID;
+            userSubdepartment.DepartmentID = subdepartment.DepartmentID;
+            userSubdepartment.Username = userRole.Username;
+            dbContext.UserSubdepartment.Add(userSubdepartment);
+            dbContext.SaveChanges();
+
+        }
+
+    }
+
+    void InitDepartments()
+    {
+        if (isAdmin == true)
+        {
+            assignedDepartments = new List<string>();
+            List<UserSubdepartment> userSubdepartments = dbContext.UserSubdepartment.Where(u => u.Username == userRole!.Username).ToList();
+            foreach (var userSubdepartment in userSubdepartments)
+            {
+                Subdepartment subdepartment = dbContext.Subdepartment.First(s => s.ID == userSubdepartment.SubdepartmentID);
+                assignedDepartments.Add(subdepartment.Name);
+
+            }
+
+        }
+
+
+    }
+
+    void CreateUserSubdepartment(UserSubdepartment userSubdepartment)
+    {
+        dbContext.UserSubdepartment.Add(userSubdepartment);
+        dbContext.SaveChanges();
+    }
+
+    void UpdateUserSubdepartment(UserSubdepartment userSubdepartment)
+    {
+        UserSubdepartment prevUserSubdepartment = dbContext.UserSubdepartment.First(s => s.Username == userRole!.Username);
+        prevUserSubdepartment.SubdepartmentID = userSubdepartment.SubdepartmentID;
+        dbContext.Entry(prevUserSubdepartment).CurrentValues.SetValues(userSubdepartment);
+        dbContext.SaveChanges();
+    }
+
+    void Update(UserRole userRole)
+    {
+        UserRole prevUserRole = dbContext.UserRole.First(u => u.Username == userRole.Username);
+        dbContext.Entry(prevUserRole).CurrentValues.SetValues(userRole);
+        dbContext.SaveChanges();
+        setState__parentEvent.InvokeAsync("records");
+        ShowAlert__ParentEvent.InvokeAsync(true);
+        SetAlertMessage__ParentEvent.InvokeAsync("Record Succesfully updated");
+        SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+
+    }
+
+    void Cancel()
+    {
+        userRole = new UserRole();
+        setState__parentEvent.InvokeAsync("records");
+
+    }
+}

@@ -1,0 +1,42 @@
+@using ITDocumentation.Data
+@inject ApplicationDbContext dbContext
+
+
+
+<div class="nav-item px-3">
+    <NavLink class="nav-link" data-bs-toggle="collapse" href="#collapseExample" role="button" aria-expanded="false" aria-controls="collapseExample">
+        <RadzenIcon Icon="settings" />&nbsp;&nbsp;Settings
+    </NavLink>
+
+    <div class="collapse" id="collapseExample" style="margin-left:20%;">
+        <a href="/itdocs/menu/">
+            <NavLink class="nav-link">
+                Menu Items
+            </NavLink>
+        </a>
+        <a href="/itdocs/department/">
+            <NavLink class="nav-link">
+                Departments
+            </NavLink>
+        </a>
+        <a href="/itdocs/users/">
+            <NavLink class="nav-link">
+                Users
+            </NavLink>
+        </a>
+
+        @{
+            MenuItem item = dbContext.MenuItem.First(i => i.Name == "Core Values");
+            <a href="/itdocs/singlePages/view/@item.PageID">
+                <NavLink class="nav-link">
+                    Core Values
+                </NavLink>
+            </a>
+
+
+        }
+
+
+    </div>
+</div>
+

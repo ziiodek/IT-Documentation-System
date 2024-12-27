@@ -1,0 +1,63 @@
+@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@using System.IO;
+@inject ApplicationDbContext dbContext
+
+<div class="row">
+    <div class="col-sm-3">
+        <RadzenTextBox @bind-Value=@name Placeholder="Filter by Name" style="width:100%;" Change=@(args => onChange__Name(args)) />
+    </div>
+    <div class="col-sm-3">
+        <RadzenTextBox @bind-Value=@author Placeholder="Filter by Author" style="width:100%;" Change=@(args => onChange__AuthorName(args)) />
+    </div>
+    <div class="col-sm-3">
+        <RadzenDatePicker @bind-Value=@date DateFormat="d" Placeholder="Filter by Date" style="width:100%;" Change=@(args => onChange__Date(args)) />
+    </div>
+    <div class="col-sm-3">
+        <RadzenButton style="display: inline-block; margin-left: 10px;" Text="Reset" Click="@ResetFilter" />
+    </div>
+</div>
+
+
+@code
+{
+
+    string name = "Filter by Name";
+    string author = "Filter by Author Name";
+    DateTime? date = DateTime.Now;
+    //yyy-12-09
+
+    [Parameter]
+    public EventCallback<string> nameFilter__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> authorNameFilter__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<DateTime?> dateFilter__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback resetFilter__parentEvent { get; set; }
+
+    void onChange__Name(string name)
+    {
+        nameFilter__parentEvent.InvokeAsync(name);
+    }
+
+    void onChange__AuthorName(string authorName)
+    {
+        authorNameFilter__parentEvent.InvokeAsync(authorName);
+    }
+
+    void onChange__Date(DateTime? date)
+    {
+        dateFilter__parentEvent.InvokeAsync(date);
+    }
+
+
+
+    void ResetFilter()
+    {
+        resetFilter__parentEvent.InvokeAsync();
+
+    }
+
+}

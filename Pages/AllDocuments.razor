@@ -1,0 +1,86 @@
+﻿@page "/documents/"
+@using ITDocumentation.Classes
+@using ITDocumentation.Data
+@inject ApplicationDbContext dbContext
+
+<SearchResultsTable results="@results" />
+
+@code {
+
+    List<KeyValuePair<int, string>>? tags = new List<KeyValuePair<int, string>>();
+    List<SearchResult>? results = new List<SearchResult>();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        GetSearchResults();
+
+    }
+
+    void SetDictionary(List<KeyValuePair<int, string>> tags)
+    {
+        this.tags = tags;
+
+    }
+
+    void SetResults(List<SearchResult> results)
+    {
+        this.results = results;
+
+    }
+
+    void GetDocuments()
+    {
+        List<Document> documents = dbContext.Document.Where(d => d.IsArchive == false).ToList();
+        foreach (var document in documents)
+        {
+            string name = document.Name;
+            SearchResult resultDocument = new SearchResult();
+            resultDocument.ID = document.ID;
+            resultDocument.Type = "document";
+            resultDocument.Name = document.Name;
+            resultDocument.Status = document.Status;
+            resultDocument.AuthorName = document.AuthorName;
+            resultDocument.DateTime = document.DateTime;
+            resultDocument.ModifiedBy = document.ModifiedBy;
+            resultDocument.ModifiedDate = document.ModifiedDate;
+            resultDocument.ApprovedBy = document.ApprovedBy;
+            results.Add(resultDocument);
+
+
+
+        }
+
+    }
+
+    void GetPages()
+    {
+        List<SinglePage> pages = dbContext.SinglePage.ToList();
+        foreach (SinglePage page in pages)
+        {
+            string name = page.Name;
+            if (String.Compare(name, "About") != 0 && String.Compare(name, "Manual Procedures") != 0 && String.Compare(name, "Database List") != 0 && String.Compare(name, "Core Values") != 0)
+            {
+                    SearchResult resultDocument = new SearchResult();
+                    resultDocument.ID = page.ID;
+                    resultDocument.Type = "page";
+                    resultDocument.Name = page.Name;
+                    resultDocument.AuthorName = page.AuthorName;
+                    resultDocument.DateTime = page.DateTime;
+                    resultDocument.ModifiedBy = page.ModifiedBy;
+                    resultDocument.ModifiedDate = page.ModifiedDate;
+                    results.Add(resultDocument);
+            }
+               
+        }
+    }
+
+    void GetSearchResults()
+    {
+
+            GetDocuments();
+            GetPages();
+    }
+
+}
+

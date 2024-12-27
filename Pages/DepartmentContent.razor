@@ -1,0 +1,98 @@
+@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext dbContext
+@page "/content/{subdepartmentID:int}"
+
+
+    <TitleContainer content="@title" />
+    <br>
+<div class="row">
+   
+        @{
+
+            if(@tableTitle != "None")
+            {
+                <div class="col-sm-6">
+                    <LinkCard style="width:100%;"
+                              content="@tableTitle"
+                              link="@tableLink" />
+                </div>
+            }
+          
+                <div class="col-sm-6">
+                    <LinkCard style="width:100%;"
+                              content="Manual Procedures"
+                              link="@manualProceduresLink" />
+                </div>
+        <!--<div class="col-sm-6">
+            <LinkCard style="width:100%;"
+                      content="Projects"
+                      link="@projects" />
+        </div> -->
+            
+
+        }
+
+    
+</div>
+
+
+@code {
+    string title = "";
+    string singlePages = "";
+    string projects = "";
+    string about = "";
+    string tableTitle = "";
+    string tableLink = "";
+    string manualProceduresLink = "";
+
+    [Parameter]
+    public int subdepartmentID { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        singlePages = "singlePages/" + subdepartmentID;
+        projects = "projects/" + subdepartmentID;
+
+        if (dbContext.Subdepartment.Any(s => s.ID == subdepartmentID))
+        {
+            Subdepartment subdepartment = dbContext.Subdepartment.First(s => s.ID == subdepartmentID);
+            title = subdepartment.Name!;
+
+            if (subdepartment.ID == 65)
+            {
+                tableTitle = "SYM Master list";
+                tableLink = "/itdocs/SYMList/";
+
+            }
+            else if (subdepartment.ID == 66)
+            {
+                tableTitle = "Server list";
+                tableLink = "/itdocs/serverList/";
+
+            }
+            else if (subdepartment.ID == 63)
+            {
+                tableTitle = "Applications";
+                tableLink = "/itdocs/applications/";
+
+            }
+            else
+            {
+                tableTitle = "None";    
+            }
+
+
+            if (dbContext.SinglePage.Any(s => s.SubdepartmentID == subdepartmentID && s.Name == "Manual Procedures"))
+            {
+                SinglePage manualProcedures = dbContext.SinglePage.First(s => s.SubdepartmentID == subdepartmentID && s.Name == "Manual Procedures");
+                manualProceduresLink = "/itdocs/singlePages/view/" + manualProcedures.ID.ToString();
+            }
+
+        }
+
+
+    }
+
+}

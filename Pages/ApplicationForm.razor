@@ -1,0 +1,178 @@
+@using ITDocumentation.Data
+@inject ApplicationDbContext dbContext
+@inject ProtectedSessionStorage ProtectedSessionStore
+
+<RadzenTemplateForm Data="@application" Submit="@((Application args) => { Submit(args); })">
+    <div class="row">
+        <div class="col-sm-6">
+            <div class="row">
+                <div class="col-sm-2 ">
+                    <RadzenLabel Text="*Name" />
+                </div>
+                <div class="col-sm-8">
+                    <RadzenTextBox @bind-Value=@application.Name Name="Name" style="width:100%;" />
+                    <br>
+                    <RadzenRequiredValidator Component="Name" Text="Name is required" Popup="true" Style="position: absolute" />
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="row">
+                <div class="col-sm-2 ">
+                    <RadzenLabel Text="*Logon Method" />
+                </div>
+                <div class="col-sm-8">
+                    <RadzenTextBox @bind-Value=@application.LogonMethod Name="LogonMethod" style="width:100%;" />
+                    <br>
+                    <RadzenRequiredValidator Component="LogonMethod" Text="Logon Method is required" Popup="true" Style="position: absolute" />
+                </div>
+            </div>
+        </div>
+    </div>
+    <br> 
+    <div class="row">
+        <div class="col-sm-6">
+            <div class="row">
+                <div class="col-sm-2 ">
+                    <RadzenLabel Text="*Users from" />
+                </div>
+                <div class="col-sm-8">
+                    <RadzenTextBox @bind-Value=@application.UsersFrom Name="UsersFrom" style="width:100%;" />
+                    <br>
+                    <RadzenRequiredValidator Component="UsersFrom" Text="Users from is required" Popup="true" Style="position: absolute" />
+                </div>
+            </div>
+            </div>
+        <div class="col-sm-6">
+            <div class="row">
+                <div class="col-sm-2 ">
+                    <RadzenLabel Text="*Owner" />
+                </div>
+                <div class="col-sm-8">
+                    <RadzenTextBox @bind-Value=@application.Owner Name="Owner" style="width:100%;" />
+                    <br>
+                    <RadzenRequiredValidator Component="Owner" Text="Owner is required" Popup="true" Style="position: absolute" />
+                </div>
+            </div>
+        </div>
+     </div>
+     <br>
+     <div class="row">
+         <div class="col-sm-6">
+            <div class="row">
+                <div class="col-sm-2 ">
+                    <RadzenLabel Text="*Technician" />
+                </div>
+                <div class="col-sm-8">
+                    <RadzenTextBox @bind-Value=@application.Tech Name="Tech" style="width:100%;" />
+                    <br>
+                    <RadzenRequiredValidator Component="Tech" Text="Technitian is required" Popup="true" Style="position: absolute" />
+                </div>
+            </div>
+         </div>
+        <div class="col-sm-6">
+            <div class="row">
+                <div class="col-sm-2 ">
+                    <RadzenLabel Text="*Notes" />
+                </div>
+                <div class="col-sm-8">
+                    <RadzenTextArea @bind-Value=@application.Notes Name="Notes" style="width:100%;" />
+                    <br>
+                    <RadzenRequiredValidator Component="Notes" Text="Notes are required" Popup="true" Style="position: absolute" />
+                </div>
+            </div>
+        </div>
+     </div>
+    <br>
+    <div class="row justify-content-center">
+        <div class="col-md-12 d-flex align-items-end justify-content-left" style="margin-top: 16px;">
+            <RadzenButton ButtonType="ButtonType.Submit" Icon="save" Text="Save" data-bs-toggle="collapse" href="#collapseDowntime" role="button" aria-expanded="false" aria-controls="collapseDowntime" />
+            <RadzenButton Icon="cancel" style="display: inline-block; margin-left: 10px;" Text="Cancel" Click="@Cancel" data-bs-toggle="collapse" href="#collapseDowntime" role="button" aria-expanded="false" aria-controls="collapseDowntime" />
+        </div>
+    </div>
+</RadzenTemplateForm>
+
+@code {
+
+    [Parameter]
+    public Application application { get; set; }
+    [Parameter]
+    public List<Application> applicationList { get; set; }
+    [Parameter]
+    public EventCallback<Application> SetApplication__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetState__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<List<Application>> SetApplicationList__parentEvent { get; set; }
+    [Parameter]
+    public string state { get; set; }
+    [Parameter]
+    public EventCallback<bool> ShowAlert__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertMessage__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertType__ParentEvent { get; set; }
+
+
+    List<string> statusList;
+    string user { get; set; }
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+
+        application.DateTime = DateTime.Now;
+        
+        var result = await ProtectedSessionStore.GetAsync<string>("user");
+        if (result.Success)
+        {
+            user = result.Value.ToString();
+
+        }
+    }
+
+    void Submit(Application application)
+    {
+        if (state == "create")
+        {
+            application.DateTime = DateTime.Now;
+            application.AuthorName = user;
+            application.ModifiedDate = DateTime.Now;
+            dbContext.Application.Add(application);
+            dbContext.SaveChanges();
+            applicationList = dbContext.Application.ToList();
+            ShowAlert__ParentEvent.InvokeAsync(true);
+            SetAlertMessage__ParentEvent.InvokeAsync("Record Succesfully created");
+            SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+
+        }
+        else if (state == "update")
+        {
+            application.ModifiedBy = user;
+            application.ModifiedDate = DateTime.Now;
+            Application prevApplication = dbContext.Application.First(a => a.ID == this.application.ID);
+            dbContext.Entry(prevApplication).CurrentValues.SetValues(application);
+            dbContext.SaveChanges();
+            applicationList = dbContext.Application.ToList();
+            ShowAlert__ParentEvent.InvokeAsync(true);
+            SetAlertMessage__ParentEvent.InvokeAsync("Record Succesfully updated");
+            SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+        }
+
+        SetApplicationList__parentEvent.InvokeAsync(applicationList);
+        SetState__parentEvent.InvokeAsync("create");
+        SetApplication__parentEvent.InvokeAsync(new Application());
+
+    }
+
+    void Cancel()
+    {
+        SetState__parentEvent.InvokeAsync("create");
+        SetApplication__parentEvent.InvokeAsync(new Application());
+
+
+    }
+
+}

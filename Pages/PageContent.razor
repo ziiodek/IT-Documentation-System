@@ -1,0 +1,62 @@
+@using System.Text.Json
+@using System.Text.Json.Nodes
+
+
+<div class="container">
+    <div class="view-content">
+        @((MarkupString)pageContent!)
+    </div>
+</div>
+
+
+@code {
+
+    [Parameter]
+    public string title { get; set; }
+    [Parameter]
+    public string pageContent { get; set; }
+    [Parameter]
+    public int ID { get; set; }
+    [Parameter]
+    public string type { get; set; }
+    List<string> tagList = new List<string>();
+    JsonReader? reader;
+
+    protected override async Task OnInitializedAsync()
+    {
+        InitTagList();
+    }
+
+    void InitTagList()
+    {
+        if (type == "project")
+        {
+            type = "projectPage";
+
+        }
+        tagList = new List<string>();
+        reader = new JsonReader();
+        JsonNode contentTags = reader.getTags("ContentTags.json");
+        JsonObject jsonObj = contentTags.AsObject();
+        JsonNode itemTags = contentTags[ID.ToString()]!;
+
+        if (jsonObj.ContainsKey(ID.ToString()))
+        {
+            if (itemTags["Type"].ToString() == type)
+            {
+
+                foreach (var tagName in contentTags[ID.ToString()]["Tags"].AsArray())
+                {
+
+                    tagList.Add(tagName.ToString());
+                }
+
+            }
+
+
+        }
+
+    }
+
+
+}

@@ -1,0 +1,168 @@
+﻿@page "/serverList/"
+@using ITDocumentation.Data
+@using System.Collections.Generic
+@using System.Threading;
+@inject ApplicationDbContext dbContext
+@inject NavigationManager NavigationManager
+@inject ProtectedSessionStorage ProtectedSessionStore
+
+<TitleContainer content="@title" />
+<br>
+
+@{
+    if (showAlert == true)
+    {
+        <AlertMessage content="@alertMessage"
+                      alertType="@alertType" />
+
+
+    }
+
+
+}
+
+
+@{
+    if (showProgressBar == false)
+    {
+
+        <ServersTable serverList="@serverList"
+        SetState__parentEvent="@SetState"
+        SetServer__parentEvent="@SetServer"
+        SetAlertMessage__ParentEvent="@SetAlertMessage"
+        SetAlertType__ParentEvent="@SetAlertType"
+        ShowAlert__ParentEvent="@ShowAlert"
+        SetServerList__parentEvent="@SetServerList" 
+        UserName="@userName"
+        show=@show
+        SetShowProgressBar__parentEvent="@SetShowProgressBar" />
+        if (show == true)
+        {
+            <br>
+            <button class="btn btn-primary" data-bs-toggle="collapse" href="#collapseDowntime" role="button" aria-expanded="false" aria-controls="collapseDowntime">ADD ENTRY</button>
+            <br>
+            <br>    <div class="collapse multi-collapse gray-container" id="collapseDowntime">
+                <h5>
+                    Add new record
+                </h5>
+                <br>
+                <ServersForm server="@server"
+                state="@state"
+                serverList="@serverList"
+                SetState__parentEvent="@SetState"
+                SetServer__parentEvent="@SetServer"
+                SetServerList__parentEvent="@SetServerList"
+                SetAlertMessage__ParentEvent="@SetAlertMessage"
+                SetAlertType__ParentEvent="@SetAlertType"
+                ShowAlert__ParentEvent="@ShowAlert" />
+
+            </div>
+        }
+    }else{
+
+        Console.WriteLine("Showing bar");
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    }
+    
+}
+
+
+@code {
+
+    string title = "Server List";
+    string state = "create";
+    Server server;
+    List<Server> serverList;
+    bool showAlert = false;
+    string alertMessage = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut in viverra lorem, et dapibus nibh. Vestibulum commodo interdum ex eget aliquam. Duis viverra massa at sapien varius, non ornare ligula porttitor.";
+    string alertType = "alert alert-primary";
+    private int currentTime;
+    string userName = "";
+    bool show = false;
+    bool showProgressBar = false;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        server = new Server();
+        serverList = dbContext.Server.ToList();
+        var result = await ProtectedSessionStore.GetAsync<string>("user");
+        if (result.Success)
+        {
+            userName = result.Value!.ToString();
+        }
+        var userDep = await ProtectedSessionStore.GetAsync<int>("subdepartment");
+        if (userDep.Value == 66)
+        {
+            show = true;
+        }
+
+    }
+
+
+    void SetShowProgressBar(bool showProgressBar)
+    {
+        this.showProgressBar = showProgressBar;
+
+    }
+
+    void SetState(string state)
+    {
+        this.state = state;
+    }
+
+    void SetServer(Server server)
+    {
+        this.server = server;
+    }
+
+    public void SetServerList(List<Server> serverList)
+    {
+        this.serverList = serverList;
+
+    }
+
+
+    async Task ShowAlert(bool showAlert)
+
+    {
+        this.showAlert = showAlert;
+        var timer = new Timer(new TimerCallback(_ =>
+     {
+         currentTime++;
+         InvokeAsync(() =>
+     {
+         StateHasChanged();
+         this.showAlert = false;
+     });
+     }), null, 5000, 5000);
+
+
+
+    }
+
+    async Task HideAlert()
+    {
+
+        await Task.Delay(2);
+        this.showAlert = false;
+
+
+    }
+
+
+
+    void SetAlertMessage(string alertMessage)
+    {
+        this.alertMessage = alertMessage;
+
+    }
+
+    void SetAlertType(string alertType)
+    {
+        this.alertType = alertType;
+
+
+    }
+
+}

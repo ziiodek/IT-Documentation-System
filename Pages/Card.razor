@@ -1,0 +1,29 @@
+<div class="bucket">
+    <div class="bucket-hover" @onclick="() => selectSubdepartment()">
+        @content
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public string content { get; set; }
+    [Parameter]
+    public int subdepartmentID { get; set; }
+    [Parameter]
+    public int departmentID { get; set; }
+    [Parameter]
+    public string link { get; set; }
+    [Parameter]
+    public EventCallback<int> selectSubdepartment__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> setPageTitle__parentEvent { get; set; }
+
+    protected async Task selectSubdepartment()
+    {
+        await selectSubdepartment__parentEvent.InvokeAsync(departmentID);
+        await setPageTitle__parentEvent.InvokeAsync(content!.ToUpper() + " DEPARTMENTS");
+
+    }
+
+}

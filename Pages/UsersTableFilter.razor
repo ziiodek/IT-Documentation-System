@@ -1,0 +1,96 @@
+@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@using System.IO;
+@inject ApplicationDbContext dbContext
+
+<div class="row">
+    <div class="col-sm-2">
+        <RadzenTextBox @bind-Value=@name Placeholder="Filter by Name" style="width:100%;" Change=@(args => onChange__Name(args)) />
+    </div>
+    <div class="col-sm-2">
+        <RadzenTextBox @bind-Value=@username Placeholder="Filter by Username" style="width:100%;" Change=@(args => onChange__Username(args)) />
+    </div>
+    <div class="col-sm-2">
+        <RadzenDropDown Placeholder="Filter by User Role"
+                        AllowClear="true"
+                        TValue="string"
+        @bind-Value="@role"
+                        Data="@(roles!.Select(r => r.RoleName).Distinct())"
+                        Change=@(args => onChange__Role(args)) />
+    </div>
+    <div class="col-sm-2">
+        <RadzenDropDown Placeholder="Filter by Department"
+                        AllowClear="true"
+                        TValue="string"
+        @bind-Value="@subdepartment"
+                        Data="@(subdepartments!.Select(s => s.Name).Distinct())"
+                        Change=@(args => onChange__Subdepartment(args)) />
+
+    </div>
+
+    <div class="col-sm-2">
+        <RadzenButton style="display: inline-block; margin-left: 10px;" Text="Reset" Click="@ResetFilter" />
+    </div>
+</div>
+
+
+@code {
+
+    string? name;
+    string? username;
+    string? role;
+    string? subdepartment;
+
+    IEnumerable<Role>? roles;
+    IEnumerable<Subdepartment>? subdepartments;
+
+    [Parameter]
+    public EventCallback<string> nameFilter__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> usernameFilter__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> roleFilter__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> subdepartmentFilter__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback resetFilter__parentEvent { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        roles = dbContext.Role.ToList();
+        subdepartments = dbContext.Subdepartment.ToList();
+    }
+
+
+    void onChange__Name(string name)
+    {
+        nameFilter__parentEvent.InvokeAsync(name);
+    }
+
+    void onChange__Username(string username)
+    {
+        usernameFilter__parentEvent.InvokeAsync(username);
+    }
+
+
+    void onChange__Role(Object value)
+    {
+        var role = value is IEnumerable<object> ? string.Join(",", (IEnumerable<object>)value) : value;
+        roleFilter__parentEvent.InvokeAsync(role.ToString());
+    }
+
+    void onChange__Subdepartment(Object value)
+    {
+        var subdepartment = value is IEnumerable<object> ? string.Join(",", (IEnumerable<object>)value) : value;
+        subdepartmentFilter__parentEvent.InvokeAsync(subdepartment.ToString());
+    }
+
+
+    void ResetFilter()
+    {
+        resetFilter__parentEvent.InvokeAsync();
+
+    }
+
+}

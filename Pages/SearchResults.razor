@@ -1,0 +1,63 @@
+﻿@using ITDocumentation.Classes
+@inject NavigationManager MyNavigationManager
+
+
+@{
+    
+    if (!MyNavigationManager.Uri.Contains("archive"))
+    {
+        //if (MyNavigationManager.Uri.Split("/")[4] != "archive")
+        //{
+
+            <GlobalSearchBar SetDictionary__ParentEvent="@SetDictionary"
+                             SetShowSearchResults__ParentEvent="@SetShowSearchResults"
+                             SetResults__ParentEvent="@SetResults"
+                             searchArchive=false />
+
+
+        //}
+    }
+
+
+}
+
+
+<br>
+@{
+    if (showSearchResults)
+    {
+        <SearchResultsTable results="@results" />
+
+    }
+}
+
+
+@code {
+
+    List<KeyValuePair<int, string>>? tags = new List<KeyValuePair<int, string>>();
+    List<SearchResult>? results = new List<SearchResult>();
+    [Parameter]
+    public bool showSearchResults {get;set;}
+    [Parameter]
+    public EventCallback<bool> SetShowSearchResults__ParentEvent { get; set; }
+
+    void SetDictionary(List<KeyValuePair<int, string>> tags)
+    {
+        this.tags = tags;
+
+    }
+
+    void SetResults(List<SearchResult> results)
+    {
+        this.results = results;
+
+    }
+
+    void SetShowSearchResults(bool showSearchResults)
+    {
+        SetShowSearchResults__ParentEvent.InvokeAsync(showSearchResults);
+
+    
+    }
+
+}

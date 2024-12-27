@@ -1,0 +1,148 @@
+@using ITDocumentation.Data
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+@inject NavigationManager NavigationManager
+@inject DialogService DialogService
+@inject IJSRuntime JS
+
+
+    <RadzenButton Text="Download Applications list Template" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@ViewTemplate" @onclick:stopPropagation="true">
+    </RadzenButton>
+    <br>
+    <br>
+
+    <CSVControls tableName="Application"
+                 SetAppplicationList__parentEvent="@SetAppplicationList__parentEvent"
+             show="@show" />
+    <br>
+    <RadzenDataGrid 
+                    AllowPaging="false"
+                    AllowSorting="true"
+                    AllowFiltering="true"
+                    FilterMode="FilterMode.SimpleWithMenu"
+                    FilterCaseSensitivity="@filterCaseSensitivity"
+                    LogicalFilterOperator="@logicalFilterOperator"
+                    Data="@applicationList"
+                    TItem="Application"
+                Style="height:800px; overflow:scroll;"
+                    GridLines="Radzen.DataGridGridLines.Vertical"
+                    AllowColumnResize="true" ColumnWidth="250px">
+
+        <Columns>
+            <RadzenDataGridColumn TItem="Application" Property="@nameof(Application.AuthorName)" Title="Author Name">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Application" Property="@nameof(Application.DateTime)" Title="Creation Date Time">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Application" Property="@nameof(Application.ModifiedBy)" Title="Modified By">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Application" Property="@nameof(Application.ModifiedDate)" Title="Modified Date">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Application" Property="@nameof(Application.Name)" Title="Name">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Application" Property="@nameof(Application.LogonMethod)" Title="Logon Method">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Application" Property="@nameof(Application.UsersFrom)" Title="Users List from">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Application" Property="@nameof(Application.Owner)" Title="Owner">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Application" Property="@nameof(Application.Tech)" Title="Technitian">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Application" Property="@nameof(Application.Notes)" Title="Notes">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Application" Context="application" TextAlign="TextAlign.Right" Width="100px" Title="Actions">
+                <Template Context="application">
+                    <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditRow(application))" @onclick:stopPropagation="true" data-bs-toggle="collapse" href="#collapseDowntime" role="button" aria-expanded="false" aria-controls="collapseDowntime">
+                    </RadzenButton>
+                    <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => ShowDialog(application))" @onclick:stopPropagation="true">
+                    </RadzenButton>
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+
+    </RadzenDataGrid>
+<script suppress-error="BL9992">
+    window.triggerFileDownload = (fileName, url) => {
+        const anchorElement = document.createElement('a');
+        anchorElement.href = url;
+        anchorElement.download = fileName ?? '';
+        anchorElement.click();
+        anchorElement.remove();
+    }
+</script>
+
+
+@code {
+    [Parameter]
+    public List<Application> applicationList { get; set; }
+    RadzenDataGrid<Application> applicationGrid;
+    [Parameter]
+    public EventCallback<string> SetState__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<Application> SetApplication__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<bool> ShowAlert__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertMessage__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertType__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<List<Application>> SetAppplicationList__parentEvent { get; set; }
+    bool show = true;
+    FilterCaseSensitivity filterCaseSensitivity = FilterCaseSensitivity.CaseInsensitive;
+    LogicalFilterOperator logicalFilterOperator = LogicalFilterOperator.Or;
+
+
+    async Task ViewTemplate()
+    {
+        string directory = "/itdocs/Templates";
+        var fileName = "Application.xlsx";
+        var fileURL = directory + "/" + fileName;
+        await JS.InvokeVoidAsync("triggerFileDownload", fileName, fileURL);
+
+    }
+
+    async Task EditRow(Application application)
+    {
+        await SetApplication__parentEvent.InvokeAsync(application);
+        await SetState__parentEvent.InvokeAsync("update");
+    }
+
+    async Task DeleteRow(Application application, DialogService ds)
+    {
+
+        if (this.applicationList!.Contains(application))
+        {
+            dbContext.Application.Remove(application);
+            dbContext.SaveChanges();
+            applicationList = dbContext.Application.ToList();
+           
+            SetAppplicationList__parentEvent.InvokeAsync(applicationList);
+            ShowAlert__ParentEvent.InvokeAsync(true);
+            SetAlertMessage__ParentEvent.InvokeAsync("Record Succesfully deleted");
+            SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+
+        }
+
+        ds.Close(false);
+    }
+
+    async Task ShowDialog(Application application)
+    {
+
+        var result = await DialogService.OpenAsync("Confirmation", ds =>
+    @<RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <p>Are you sure you want to delete the record?</p>
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenButton Text="Ok" Click="() => DeleteRow(application,ds)" Style="width: 80px;" />
+                <RadzenButton Text="Cancel" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Light" />
+            </RadzenStack>
+        </RadzenStack>
+        </RadzenStack>
+    );
+
+    }
+
+
+
+}

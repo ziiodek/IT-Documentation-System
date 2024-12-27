@@ -1,0 +1,261 @@
+@using ITDocumentation.Data
+@using ITDocumentation.Classes
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+@inject NavigationManager NavigationManager
+@implements Filter
+@inject DialogService DialogService
+@inject ProtectedSessionStorage ProtectedSessionStore
+
+
+
+<TableFilter nameFilter__parentEvent="@NameFilter"
+             authorNameFilter__parentEvent="@AuthorFilter"
+             dateFilter__parentEvent="@DateFilter"
+             resetFilter__parentEvent="@ResetFilter" />
+<br>
+
+<RadzenDataGrid ColumnWidth="300px"
+                AllowColumnResize="true"
+                @ref="pagesGrid"
+                AllowPaging="true"
+                GridLines="Radzen.DataGridGridLines.Vertical"
+                PageSize="20"
+                Data="@pages"
+                TItem="SinglePage">
+
+    <Columns>
+        <RadzenDataGridColumn TItem="SinglePage" Property="SinglePage.Name" Title="Page Name" Width="100%">
+            <EditTemplate Context="singlePage">
+                <RadzenTextBox @bind-Value=@singlePage.Name style="width:100%;" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="SinglePage" Property="SinglePage.AuthorName" Title="Author" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="SinglePage" Property="SinglePage.DateTime" Title="Creation Date/Time" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="SinglePage" Property="SinglePage.ModifiedBy" Title="Modified By" Width="100%">
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="SinglePage" Property="SinglePage.ModifiedDate" Title="Modified Date/Time" Width="100%">
+        </RadzenDataGridColumn>
+           <RadzenDataGridColumn TItem="SinglePage" Context="singlePage" Title="Tags" TextAlign="TextAlign.Right" Width="156px">
+            <Template Context="singlePage">
+                @{
+                    string tags = tagsHelper.getContentTags(singlePage.ID, "singlePage");
+                    <span>@tags</span>
+                }
+
+            </Template>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn TItem="SinglePage" Context="singlePage" TextAlign="TextAlign.Right" Width="156px">
+            <Template Context="singlePage">
+                <RadzenButton Icon="visibility" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => ViewRow(singlePage))" @onclick:stopPropagation="true">
+                </RadzenButton>
+                @{
+                    if (singlePage.Name != "About")
+                    {
+                        <CRUDTable subdepartmentID="@subdepartmentID" action="edit">
+                            <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditRow(singlePage))" @onclick:stopPropagation="true">
+                            </RadzenButton>
+                        </CRUDTable>
+                        <CRUDTable subdepartmentID="@subdepartmentID" action="delete">
+                            <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => ShowDialog(singlePage))" @onclick:stopPropagation="true">
+                            </RadzenButton>
+                        </CRUDTable>
+                    }
+                    else
+                    {
+                        <CRUDTable subdepartmentID="@subdepartmentID" action="edit">
+                            <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditRow(singlePage))" @onclick:stopPropagation="true">
+                            </RadzenButton>
+                        </CRUDTable>
+                    }
+                }
+
+
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+
+</RadzenDataGrid>
+
+
+@code
+{
+
+    [Parameter]
+    public IList<SinglePage> pages { get; set; }
+    [Parameter]
+    public int subdepartmentID { get; set; }
+    RadzenDataGrid<SinglePage> pagesGrid;
+    [Parameter]
+    public EventCallback<string> SetState__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<SinglePage> SetSinglePage__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback ReloadPages__parentEvent { get; set; }
+    
+
+
+    DocumentsHandler documentsHandler;
+    SinglePagesHelper singlePageHelper;
+    TagsHelper tagsHelper;
+    [Parameter]
+    public EventCallback<bool> ShowAlert__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertMessage__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertType__ParentEvent { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        documentsHandler = new DocumentsHandler(dbContext);
+        singlePageHelper = new SinglePagesHelper(dbContext);
+        tagsHelper = new TagsHelper();
+        pages = dbContext.SinglePage.Where(p => p.SubdepartmentID == subdepartmentID).ToList();
+
+
+    }
+
+
+    void SetState__event()
+    {
+        SetState__parentEvent!.InvokeAsync("create");
+    }
+
+    async Task EditRow(SinglePage page)
+    {
+        await SetSinglePage__parentEvent!.InvokeAsync(page);
+        await SetState__parentEvent!.InvokeAsync("update");
+    }
+
+    async Task ViewRow(SinglePage page)
+    {
+        await SetSinglePage__parentEvent!.InvokeAsync(page);
+        await SetState__parentEvent!.InvokeAsync("view");
+
+    }
+
+    void CancelEdit(Project project)
+    {
+
+    }
+
+    async Task DeleteRow(SinglePage page, DialogService ds)
+    {
+
+        if (pages!.Contains(page))
+        {
+            var result = await ProtectedSessionStore.GetAsync<string>("user");
+
+            singlePageHelper.deleteSinglePage__menuItems(page.ID);
+            //documentsHandler.deleteAllDocuments("singlePage", page.ID,result.Value);
+            dbContext.SinglePage.Remove(page);
+
+
+            pages.Remove(page);
+            dbContext.SaveChanges();
+
+            await pagesGrid!.Reload();
+        }
+        else
+        {
+            pagesGrid!.CancelEditRow(page);
+            await pagesGrid!.Reload();
+        }
+        ds.Close(false);
+        await ShowAlert__ParentEvent.InvokeAsync(true);
+        await SetAlertMessage__ParentEvent.InvokeAsync("Record Succesfully deleted");
+        await SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+        await ReloadPages__parentEvent.InvokeAsync();
+        //singlePageHelper!.DeleteJsonTagsNode(page.ID, "singlePage");
+
+    }
+
+    async Task ShowDialog(SinglePage page)
+    {
+
+        var result = await DialogService.OpenAsync("Confirmation", ds =>
+    @<RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <p>Are you sure you want to delete the record?</p>
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenButton Text="Ok" Click="() => DeleteRow(page,ds)" Style="width: 80px;" />
+                <RadzenButton Text="Cancel" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Light" />
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenStack>
+        );
+
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var column = pagesGrid.ColumnsCollection.Where(c => c.Property == "Name").FirstOrDefault();
+
+            if (column != null)
+            {
+                pagesGrid.Reload();
+            }
+        }
+
+        return base.OnAfterRenderAsync(firstRender);
+    }
+
+    void OnFilter(DataGridColumnFilterEventArgs<SinglePage> args)
+    {
+
+        var column = pagesGrid.ColumnsCollection.Where(c => c.Property == "Name").FirstOrDefault();
+
+        if (column != null)
+        {
+
+            pagesGrid.Reload();
+        }
+
+      
+    }
+
+
+}
+
+@functions {
+    public void NameFilter(string name)
+    {
+        pages = dbContext.SinglePage.Where(p => p.Name.Contains(name) && p.SubdepartmentID == subdepartmentID).ToList();
+    }
+
+    public void AuthorFilter(string authorName)
+    {
+        pages = dbContext.SinglePage.Where(p => p.AuthorName.Contains(authorName) && p.SubdepartmentID == subdepartmentID).ToList();
+    }
+
+    public void DateFilter(DateTime? date)
+    {
+        List<SinglePage> tmpPages = dbContext.SinglePage.Where(p => p.SubdepartmentID == subdepartmentID).ToList();
+        List<SinglePage> datePages = new List<SinglePage>();
+        foreach (var page in tmpPages)
+        {
+            DateTime pageDate = page.DateTime;
+            DateTime d = date.HasValue ? date.Value : DateTime.Now;
+            if (pageDate.ToString().Contains(d.ToString("M/d/yyyy")))
+            {
+                datePages.Add(page);
+            }
+        }
+        pages = datePages;
+
+    }
+
+    public void ResetFilter()
+    {
+        pages = dbContext.SinglePage.Where(p => p.SubdepartmentID == subdepartmentID).ToList();
+
+    }
+
+}

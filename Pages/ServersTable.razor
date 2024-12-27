@@ -1,0 +1,192 @@
+@using ITDocumentation.Data
+@using System.Collections.Generic
+@using System.Data
+@using System.Globalization
+@inject ApplicationDbContext dbContext
+@inject NavigationManager NavigationManager
+@inject DialogService DialogService
+@inject IJSRuntime JS
+
+
+    <RadzenButton Text="Download Server list Template" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@ViewTemplate" @onclick:stopPropagation="true">
+    </RadzenButton>
+    <br>
+    <br>
+
+    <CSVControls tableName="Server"
+                 SetServerList__parentEvent="@SetServerList__parentEvent"
+                 show="@show"
+                 SetShowProgressBar__parentEvent="@SetShowProgressBar__parentEvent" />
+    <br>
+    <RadzenDataGrid 
+                    AllowPaging="false"
+                    AllowSorting="true"
+                    AllowFiltering="true"
+                    FilterMode="FilterMode.SimpleWithMenu"
+                    FilterCaseSensitivity="@filterCaseSensitivity"
+                    LogicalFilterOperator="@logicalFilterOperator"
+                    Data="@serverList.AsEnumerable()"
+                    TItem="Server"
+                    Style="width:100%; height:800px; overflow:scroll;"
+                    GridLines="Radzen.DataGridGridLines.Vertical"
+                    AllowColumnResize="true" ColumnWidth="250px"
+                    CellRender="@CellRender">
+
+        <Columns>
+            <RadzenDataGridColumn TItem="Server" Property="@nameof(Server.AuthorName)" Title="Author Name">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Server" Property="@nameof(Server.DateTime)" Title="Creation Date Time">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Server" Property="@nameof(Server.ModifiedBy)" Title="Modified By">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Server" Property="@nameof(Server.ModifiedDate)" Title="Modified Date">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Server" Property="@nameof(Server.Name)" Title="Name">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Server" Property="@nameof(Server.Version)" Title="Version">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Server" Property="@nameof(Server.Ip)" Title="Ip Address">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Server" Property="@nameof(Server.Status)" Title="Status">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Server" Property="@nameof(Server.PatchedBy)" Title="Patched By">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Server" Property="@nameof(Server.DatePatched)" Title="Date Patched">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Server" Property="@nameof(Server.AddExclusions)" Title="Add Exclusions">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Server" Property="@nameof(Server.TaegisAgent)" Title="Taegis Agent">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Server" Property="@nameof(Server.DUO)" Title="DUO">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Server" Property="@nameof(Server.Notes)" Title="Notes">
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="Server" Context="server" TextAlign="TextAlign.Right" Width="100px" Title="Actions">
+                <Template Context="server">
+                     @if (show == true)
+                     {
+                    <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditRow(server))" @onclick:stopPropagation="true" data-bs-toggle="collapse" href="#collapseDowntime" role="button" aria-expanded="false" aria-controls="collapseDowntime">
+                    </RadzenButton>
+                    <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" Class="my-1 ms-1" Click="@(args => ShowDialog(server))" @onclick:stopPropagation="true">
+                    </RadzenButton>
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+
+    </RadzenDataGrid>
+
+<script suppress-error="BL9992">
+    window.triggerFileDownload = (fileName, url) => {
+        const anchorElement = document.createElement('a');
+        anchorElement.href = url;
+        anchorElement.download = fileName ?? '';
+        anchorElement.click();
+        anchorElement.remove();
+    }
+</script>
+
+@code {
+    [Parameter]
+    public List<Server> serverList { get; set; }
+    RadzenDataGrid<Server> serverGrid;
+    [Parameter]
+    public EventCallback<string> SetState__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<Server> SetServer__parentEvent { get; set; }
+    [Parameter]
+    public EventCallback<bool> ShowAlert__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertMessage__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<string> SetAlertType__ParentEvent { get; set; }
+    [Parameter]
+    public EventCallback<List<Server>> SetServerList__parentEvent { get; set; }
+    [Parameter]
+    public string UserName { get; set; }
+    [Parameter]
+    public bool show { get; set; }
+    [Parameter]
+    public EventCallback<bool> SetShowProgressBar__parentEvent { get; set; }
+
+    FilterCaseSensitivity filterCaseSensitivity = FilterCaseSensitivity.CaseInsensitive;
+    LogicalFilterOperator logicalFilterOperator = LogicalFilterOperator.Or;
+
+
+    async Task ViewTemplate()
+    {
+        string directory = "/itdocs/Templates";
+        var fileName = "Server.xlsx";
+        var fileURL = directory + "/" + fileName;
+        await JS.InvokeVoidAsync("triggerFileDownload", fileName, fileURL);
+
+    }
+
+    void CellRender(DataGridCellRenderEventArgs<Server> args)
+    {
+        if (args.Data.Status == "Online")
+        {
+            args.Attributes.Add("style", $"background-color:var(--rz-success-lighter);");
+        }
+        else if (args.Data.Status == "Offline")
+        {
+            args.Attributes.Add("style", $"background-color:var(--rz-danger-lighter);");
+        }
+        else if (args.Data.Status == "Needs upgrade")
+        {
+            args.Attributes.Add("style", $"background-color:var(--rz-warning-lighter);");
+        
+        }
+    }
+
+    async Task EditRow(Server server)
+    {
+        await SetServer__parentEvent.InvokeAsync(server);
+        await SetState__parentEvent.InvokeAsync("update");
+    }
+
+    void GenerateSpreedSheet()
+    
+    {
+        
+    }
+
+    async Task DeleteRow(Server server, DialogService ds)
+    {
+
+        if (this.serverList!.Contains(server))
+        {
+            dbContext.Server.Remove(server);
+            dbContext.SaveChanges();
+            serverList = dbContext.Server.ToList();
+           
+            SetServerList__parentEvent.InvokeAsync(serverList);
+            ShowAlert__ParentEvent.InvokeAsync(true);
+            SetAlertMessage__ParentEvent.InvokeAsync("Record Succesfully deleted");
+            SetAlertType__ParentEvent.InvokeAsync("alert alert-primary");
+
+        }
+
+        ds.Close(false);
+    }
+
+    async Task ShowDialog(Server server)
+    {
+
+        var result = await DialogService.OpenAsync("Confirmation", ds =>
+    @<RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <p>Are you sure you want to delete the record?</p>
+            <RadzenStack Orientation="Orientation.Horizontal">
+                <RadzenButton Text="Ok" Click="() => DeleteRow(server,ds)" Style="width: 80px;" />
+                <RadzenButton Text="Cancel" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Light" />
+            </RadzenStack>
+        </RadzenStack>
+        </RadzenStack>
+    );
+
+    }
+
+
+
+}

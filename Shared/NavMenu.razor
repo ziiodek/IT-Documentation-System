@@ -1,0 +1,301 @@
+﻿@using ITDocumentation.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject ApplicationDbContext dbContext
+@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager;
+
+
+
+<CascadingValue Value="this">
+     <RadzenMenu>
+        <RadzenMenuItem Text="Home" Icon="home" @onmouseup="@(args => gotoPage("/itdocs/"))">
+            </RadzenMenuItem>
+        <RadzenMenuItem Text="Departments" Icon="book">
+            @{
+
+                foreach (var card in subdepartmentsCards!)
+                {
+                    @card
+                        
+                }
+
+            }
+
+        </RadzenMenuItem>
+        <RadzenMenuItem Text="Documents" Icon="folder_open" @onmouseup="@(args => gotoPage("/itdocs/documents"))">
+        </RadzenMenuItem>
+        <RadzenMenuItem Text="Downtime" Icon="watch" @onmouseup="@(args => gotoPage("/itdocs/downtime/"))">
+        </RadzenMenuItem>
+        <RadzenMenuItem Text="Applications" Icon="apps" @onmouseup="@(args => gotoPage("/itdocs/applications/"))">
+        </RadzenMenuItem>
+        <RadzenMenuItem Text="Additional Tools" Icon="build">
+            <RadzenMenuItem Text="ATM Daily Journal" Icon="link" Path="https://flfcu_innovations.fbfcu.org/ATMJournal/">
+            </RadzenMenuItem>
+            <RadzenMenuItem Text="Efficiency Submission" Icon="link" Path="http://flfcu_innovations/EfficiencySubmission">
+            </RadzenMenuItem>
+            <RadzenMenuItem Text="Executives Listen" Icon="link" Path="https://flfcu_innovations.fbfcu.org/ExecutivesListen">
+            </RadzenMenuItem>
+        </RadzenMenuItem>
+        <RadzenMenuItem Text="IT Event Tracker" Icon="event">
+            <RadzenMenuItem Text="Event tracker form" Icon="link" Path="https://forms.office.com/r/80e08jKB9a">
+            </RadzenMenuItem>
+            <RadzenMenuItem Text="Event tracker planner" Icon="link" Path="https://planner.cloud.microsoft/firstlightfcu.org/en-US/Home/Planner#/plantaskboard?groupId=441d7ea0-98b5-403e-87fd-1db9c53bf2f5&planId=7tRRNpKT8Uq1eFWawKWHsWQAD8m5">
+            </RadzenMenuItem>
+        </RadzenMenuItem>
+
+        @{
+            if (isAdmin)
+            {
+                <RadzenMenuItem Text="Archive" Icon="inventory" @onmouseup="@(args => gotoPage("/itdocs/archive/"))">
+                </RadzenMenuItem>
+
+                <!-- <AdminMenu /> -->
+            }
+        }
+    </RadzenMenu>
+
+
+</CascadingValue>
+@code {
+    private bool collapseNavMenu = true;
+    bool isAdmin = false;
+    List<MenuItem>? menuItems;
+    List<SinglePage> singlePages;
+    [Parameter]
+    public User? user { get; set; }
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+    string departmentsUrl = "";
+    string mainMenu__display = "display:block;";
+    string menuIcon__display = "display:none;";
+    IEnumerable<Subdepartment>? subdepartments;
+    List<RenderFragment>? subdepartmentsCards;
+    string tableTitle = "";
+    string tableLink = "";
+    string manualProceduresLink = "";
+    string title = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (user!.Role == "ADMIN" || user!.Role == "SUPERADMIN")
+        {
+            isAdmin = true;
+        }
+        string departmentName = user.Department.ToUpper();
+        Department department = dbContext.Department.First(p => p.Name == departmentName);
+        singlePages = dbContext.SinglePage.ToList();
+        departmentsUrl = "/itdocs/departments/" + department.ID;
+        //loadMenuItems();
+        subdepartmentsCards = new List<RenderFragment>();
+        selectDepartment(department.ID);
+
+    }
+
+
+    void gotoPage(string url)
+    {
+        NavigationManager.NavigateTo(url,true);
+    
+    }
+
+    void selectDepartment(int departmentID)
+    {
+        loadSubdepartments(departmentID);
+        createSubdepartments__cards();
+    }
+
+    void ShowMenu()
+    {
+        mainMenu__display = "display:block;";
+        menuIcon__display = "display:none;";
+    }
+
+    void HideMenu()
+    {
+        mainMenu__display = "display:none;";
+        menuIcon__display = "display:block;";
+    }
+
+    void loadMenuItems()
+    {
+        menuItems = dbContext.MenuItem.OrderBy(i => i.Name).ToList();
+
+    }
+
+    void loadSubdepartments(int departmentID)
+    {
+        subdepartments = dbContext.Subdepartment.Where(s => s.DepartmentID == departmentID);
+
+    }
+
+
+    void createSubdepartments__cards()
+    {
+        foreach (var subdepartment in subdepartments)
+        {
+            if (subdepartment.Name != "Admin")
+            {
+                switch (subdepartment.ID)
+                {
+
+                    case 60:
+                        manualProceduresLink = "/itdocs/singlePages/view/187";
+                        RenderFragment subdepartmentCard =
+    @<RadzenMenuItem Text="@subdepartment.Name">
+        <RadzenMenuItem Text="Manual Procedures" @onmouseup='@(args => gotoPage("/itdocs/singlePages/view/187"))'></RadzenMenuItem>
+    </RadzenMenuItem>;
+                        subdepartmentsCards.Add(subdepartmentCard);
+                        break;
+
+                    case 61:
+                        manualProceduresLink = "/itdocs/singlePages/view/196";
+                        subdepartmentCard =
+    @<RadzenMenuItem Text="@subdepartment.Name">
+        <RadzenMenuItem Text="Manual Procedures" @onmouseup='@(args => gotoPage("/itdocs/singlePages/view/196"))'></RadzenMenuItem>
+    </RadzenMenuItem>;
+                        subdepartmentsCards.Add(subdepartmentCard);
+                        break;
+
+                    case 62:
+                        manualProceduresLink = "/itdocs/singlePages/view/188";
+                        subdepartmentCard =
+    @<RadzenMenuItem Text="@subdepartment.Name">
+        <RadzenMenuItem Text="Manual Procedures" @onmouseup='@(args => gotoPage("/itdocs/singlePages/view/188"))'></RadzenMenuItem>
+    </RadzenMenuItem>;
+                        subdepartmentsCards.Add(subdepartmentCard);
+                        break;
+
+                    case 63:
+                        manualProceduresLink = "/itdocs/singlePages/view/189";
+                        subdepartmentCard =
+    @<RadzenMenuItem Text="@subdepartment.Name">
+        <RadzenMenuItem Text="Manual Procedures" @onmouseup='@(args => gotoPage("/itdocs/singlePages/view/189"))'></RadzenMenuItem>
+    </RadzenMenuItem>;
+                        subdepartmentsCards.Add(subdepartmentCard);
+                        break;
+
+                    case 64:
+                        manualProceduresLink = "/itdocs/singlePages/view/190";
+                        subdepartmentCard =
+    @<RadzenMenuItem Text="@subdepartment.Name">
+        <RadzenMenuItem Text="Manual Procedures" @onmouseup='@(args => gotoPage("/itdocs/singlePages/view/190"))'></RadzenMenuItem>
+    </RadzenMenuItem>;
+                        subdepartmentsCards.Add(subdepartmentCard);
+                        break;
+
+                    case 65:
+                        manualProceduresLink = "/itdocs/singlePages/view/191";
+                        subdepartmentCard =
+    @<RadzenMenuItem Text="@subdepartment.Name">
+        <RadzenMenuItem Text="SYM Master List" @onmouseup='@(args => gotoPage("/itdocs/SYMList/"))'></RadzenMenuItem>
+        <RadzenMenuItem Text="Manual Procedures" @onmouseup='@(args => gotoPage("/itdocs/singlePages/view/191"))'></RadzenMenuItem>
+    </RadzenMenuItem>;
+                        subdepartmentsCards.Add(subdepartmentCard);
+                        break;
+
+                    case 66:
+                        manualProceduresLink = "/itdocs/singlePages/view/192";
+                        subdepartmentCard =
+    @<RadzenMenuItem Text="@subdepartment.Name">
+        <RadzenMenuItem Text="Server List" @onmouseup='@(args => gotoPage("/itdocs/serverList/"))' ></RadzenMenuItem>
+        <RadzenMenuItem Text="Manual Procedures" @onmouseup='@(args => gotoPage("/itdocs/singlePages/view/192"))'></RadzenMenuItem>
+    </RadzenMenuItem>;
+                        subdepartmentsCards.Add(subdepartmentCard);
+                        break;
+
+                    case 86:
+                        manualProceduresLink = "/itdocs/singlePages/view/193";
+                        subdepartmentCard =
+            @<RadzenMenuItem Text="@subdepartment.Name">
+        <RadzenMenuItem Text="Manual Procedures" @onmouseup='@(args => gotoPage("/itdocs/singlePages/view/193"))'></RadzenMenuItem>
+            </RadzenMenuItem>;
+                        subdepartmentsCards.Add(subdepartmentCard);
+                        break;
+
+                }
+                /**foreach (SinglePage page in singlePages)
+                {
+                    if (page.SubdepartmentID == subdepartment.ID && page.Name == "Manual Procedures")
+                    {
+
+
+                        string link = "/itdocs/content/" + subdepartment.ID;
+
+                    }
+
+
+
+                }**/
+
+            }
+
+
+        }
+
+    }
+
+    void createSubdepartmentContent__cards(int subdepartmentID)
+    {
+        if (dbContext.Subdepartment.Any(s => s.ID == subdepartmentID))
+        {
+            Subdepartment subdepartment = dbContext.Subdepartment.First(s => s.ID == subdepartmentID);
+            title = subdepartment.Name!;
+
+            if (subdepartment.ID == 65)
+            {
+                tableTitle = "SYM Master list";
+                tableLink = "/itdocs/SYMList/";
+
+            }
+            else if (subdepartment.ID == 66)
+            {
+                tableTitle = "Server list";
+                tableLink = "/itdocs/serverList/";
+
+            }
+            else if (subdepartment.ID == 63)
+            {
+                tableTitle = "Applications";
+                tableLink = "/itdocs/applications/";
+
+            }
+            else
+            {
+                tableTitle = "None";
+            }
+
+
+            if (dbContext.SinglePage.Any(s => s.SubdepartmentID == subdepartmentID && s.Name == "Manual Procedures"))
+            {
+                SinglePage manualProcedures = dbContext.SinglePage.First(s => s.SubdepartmentID == subdepartmentID && s.Name == "Manual Procedures");
+                //manualProceduresLink = "/itdocs/singlePages/view/" + manualProcedures.ID.ToString();
+            }
+
+        }
+
+    }
+
+
+    void goToPage(int pageID,string pageType)
+    {
+        string url = "";
+
+        if (pageType == "singlePage")
+        {
+            url = "/itdocs/singlePages/view/" + pageID;
+
+        }
+        else
+        {
+
+            int subdepartmentID = dbContext.Project.First(p => p.ID == pageID).SubdepartmentID;
+            url = "/itdocs/projects/view/"+subdepartmentID+"/" + pageID;
+        
+        }
+
+        NavigationManager.NavigateTo(url, forceLoad: true);
+
+    }
+
+}
